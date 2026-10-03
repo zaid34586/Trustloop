@@ -22,6 +22,8 @@ type Question = {
   confidence: string | null;
   sources: { file_name: string; excerpt: string }[];
   status: string;
+  edited_by_user: boolean | null;
+  approved_at: string | null;
 };
 
 type PreviewData = {
@@ -91,14 +93,17 @@ function ConfidenceBadge({ confidence }: { confidence: string | null }) {
   );
 }
 
-type FilterKey = "all" | "drafted" | "not_found" | "failed";
+type FilterKey = "all" | "drafted" | "approved" | "not_found" | "failed";
 
 const FILTERS: { key: FilterKey; label: string; statuses: string[] | null }[] = [
   { key: "all", label: "All", statuses: null },
   { key: "drafted", label: "Drafted", statuses: ["drafted"] },
+  { key: "approved", label: "Approved", statuses: ["approved"] },
   { key: "not_found", label: "Not found", statuses: ["not_found"] },
   { key: "failed", label: "Failed", statuses: ["failed"] },
 ];
+
+const MAX_EDIT_CHARS = 2000;
 
 export default function QuestionnaireDetailPage() {
   const params = useParams<{ id: string }>();
@@ -127,6 +132,17 @@ export default function QuestionnaireDetailPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [hasReadyDocs, setHasReadyDocs] = useState<boolean | null>(null);
   const stopRef = useRef(false);
+
+  // Review state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [showApproveAll, setShowApproveAll] = useState(false);
+  const [approvingAll, setApprovingAll] = useState(false);
+
+  // Export state
+  const [includeDrafts, setIncludeDrafts] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const loadPreview = useCallback(
     async (sheetName?: string) => {
@@ -171,7 +187,7 @@ export default function QuestionnaireDetailPage() {
       supabase
         .from("questions")
         .select(
-          "id, row_number, question_text, answer_text, confidence, sources, status"
+          "id, row_number, question_text, answer_text, confidence, sources, status, edited_by_user, approved_at"
         )
         .eq("questionnaire_id", questionnaireId)
         .order("row_number", { ascending: true }),
@@ -330,6 +346,172 @@ export default function QuestionnaireDetailPage() {
     await loadAll();
   }
 
+  // ---------- Review ----------
+
+  function startEdit(q: Question) {
+    setEditingId(q.id);
+    setEditText(q.answer_text ?? "");
+    setError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditText("");
+  }
+
+  async function handleSaveEdit(q: Question) {
+    const text = editText.trim();
+    if (!text) {
+      setError("The answer cannot be empty. Use Cancel to discard the edit.");
+      return;
+    }
+    setSavingEdit(true);
+    setError(null);
+
+    // Optimistic update.
+    const manual = q.status === "not_found" || q.status === "failed";
+    const wasApproved = q.status === "approved";
+    const updates = {
+      answer_text: text.slice(0, MAX_EDIT_CHARS),
+      edited_by_user: true,
+      status: "drafted",
+      approved_at: null,
+      confidence: manual ? "none" : q.confidence,
+    };
+    setQuestions((prev) =>
+      prev.map((item) => (item.id === q.id ? { ...item, ...updates } : item))
+    );
+    cancelEdit();
+
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("questions")
+      .update(updates)
+      .eq("id", q.id);
+
+    if (updateError) {
+      await loadAll();
+      setError(
+        wasApproved
+          ? "Could not save the edit. The answer is back to its approved state."
+          : "Could not save the edit. Please try again."
+      );
+    }
+    setSavingEdit(false);
+  }
+
+  async function handleApprove(q: Question) {
+    setError(null);
+    const updates = { status: "approved", approved_at: new Date().toISOString() };
+    setQuestions((prev) =>
+      prev.map((item) => (item.id === q.id ? { ...item, ...updates } : item))
+    );
+
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("questions")
+      .update(updates)
+      .eq("id", q.id);
+
+    if (updateError) {
+      await loadAll();
+      setError("Could not approve the answer. Please try again.");
+    }
+  }
+
+  async function handleUnapprove(q: Question) {
+    setError(null);
+    const updates = { status: "drafted", approved_at: null };
+    setQuestions((prev) =>
+      prev.map((item) => (item.id === q.id ? { ...item, ...updates } : item))
+    );
+
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("questions")
+      .update(updates)
+      .eq("id", q.id);
+
+    if (updateError) {
+      await loadAll();
+      setError("Could not unapprove the answer. Please try again.");
+    }
+  }
+
+  const draftedWithAnswers = questions.filter(
+    (q) => q.status === "drafted" && q.answer_text
+  );
+
+  async function handleApproveAll() {
+    if (draftedWithAnswers.length === 0) return;
+    setApprovingAll(true);
+    setError(null);
+
+    const ids = draftedWithAnswers.map((q) => q.id);
+    const updates = { status: "approved", approved_at: new Date().toISOString() };
+
+    // Optimistic update.
+    setQuestions((prev) =>
+      prev.map((item) => (ids.includes(item.id) ? { ...item, ...updates } : item))
+    );
+    setShowApproveAll(false);
+
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("questions")
+      .update(updates)
+      .in("id", ids);
+
+    if (updateError) {
+      await loadAll();
+      setError("Could not approve all answers. Please try again.");
+    }
+    setApprovingAll(false);
+  }
+
+  // ---------- Export ----------
+
+  async function handleExport() {
+    setExporting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/questionnaires/${questionnaireId}/export`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ include_drafts: includeDrafts }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        setError(data?.error ?? "Export failed. Please try again.");
+        setExporting(false);
+        return;
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename="([^"]+)"/);
+      const fileName = match?.[1] ?? "questionnaire-trustloop.xlsx";
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Could not export the questionnaire. Please try again.");
+    }
+
+    setExporting(false);
+  }
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
@@ -355,6 +537,9 @@ export default function QuestionnaireDetailPage() {
   }
 
   const failedCount = questions.filter((q) => q.status === "failed").length;
+  const approvedCount = questions.filter((q) => q.status === "approved").length;
+  const draftedCount = questions.filter((q) => q.status === "drafted").length;
+  const notFoundCount = questions.filter((q) => q.status === "not_found").length;
   const filtered =
     filter === "all"
       ? questions
@@ -547,7 +732,7 @@ export default function QuestionnaireDetailPage() {
         </div>
       )}
 
-      {/* Step B — answers */}
+      {/* Step B — answers and review */}
       {["parsed", "answering", "ready"].includes(questionnaire.status) && (
         <div className="mt-6">
           {hasReadyDocs === false ? (
@@ -621,6 +806,71 @@ export default function QuestionnaireDetailPage() {
             </div>
           )}
 
+          {/* Review progress summary */}
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Review progress
+              </h2>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                <span>
+                  Total <span className="font-semibold text-gray-900">{questions.length}</span>
+                </span>
+                <span>
+                  Approved <span className="font-semibold text-green-700">{approvedCount}</span>
+                </span>
+                <span>
+                  Drafted <span className="font-semibold text-blue-700">{draftedCount}</span>
+                </span>
+                <span>
+                  Not found <span className="font-semibold text-gray-500">{notFoundCount}</span>
+                </span>
+                <span>
+                  Failed <span className="font-semibold text-red-600">{failedCount}</span>
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full bg-green-600 transition-all"
+                style={{
+                  width: questions.length
+                    ? `${Math.round((approvedCount / questions.length) * 100)}%`
+                    : "0%",
+                }}
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              {approvedCount} of {questions.length} approved
+            </p>
+          </div>
+
+          {/* Export */}
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={includeDrafts}
+                  onChange={(e) => setIncludeDrafts(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                Include drafts (marked as DRAFT)
+              </label>
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+              >
+                {exporting ? "Building Excel..." : "Download Excel"}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              By default only approved answers are exported into the original
+              file.
+            </p>
+          </div>
+
           {/* Filters */}
           <div className="mt-6 flex flex-wrap gap-2">
             {FILTERS.map((f) => {
@@ -643,6 +893,19 @@ export default function QuestionnaireDetailPage() {
             })}
           </div>
 
+          {/* Bulk approve */}
+          {draftedWithAnswers.length > 0 && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowApproveAll(true)}
+                disabled={generating}
+                className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
+              >
+                Approve all drafted ({draftedWithAnswers.length})
+              </button>
+            </div>
+          )}
+
           {/* Questions list */}
           <div className="mt-4 flex flex-col gap-3">
             {filtered.length === 0 ? (
@@ -662,39 +925,112 @@ export default function QuestionnaireDetailPage() {
                       <span className="mr-2 text-gray-400">#{q.row_number}</span>
                       {q.question_text}
                     </p>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {q.edited_by_user && (
+                        <Badge
+                          label="Edited"
+                          style="bg-primary-50 text-primary-700"
+                        />
+                      )}
                       <ConfidenceBadge confidence={q.confidence} />
                       <StatusBadge status={q.status} />
                     </div>
                   </div>
 
-                  {q.answer_text && (
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
-                      {q.answer_text}
-                    </p>
+                  {editingId === q.id ? (
+                    <div className="mt-2">
+                      <textarea
+                        value={editText}
+                        maxLength={MAX_EDIT_CHARS}
+                        rows={4}
+                        onChange={(e) => setEditText(e.target.value)}
+                        className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      />
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs text-gray-400">
+                          {editText.length}/{MAX_EDIT_CHARS}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={cancelEdit}
+                            disabled={savingEdit}
+                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveEdit(q)}
+                            disabled={savingEdit}
+                            className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+                          >
+                            {savingEdit ? "Saving..." : "Save"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    q.answer_text && (
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                        {q.answer_text}
+                      </p>
+                    )
                   )}
 
-                  {q.status === "failed" && (
+                  {q.status === "failed" && editingId !== q.id && (
                     <p className="mt-2 text-xs text-red-600">
-                      Answer generation failed. Use Retry to try again.
+                      Answer generation failed. Use Retry, or write an answer
+                      manually with Edit.
                     </p>
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={() => handleRegenerate(q.id)}
-                      disabled={generating}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                    >
-                      Regenerate
-                    </button>
-                    {q.sources.length > 0 && (
-                      <button
-                        onClick={() => toggleSources(q.id)}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                      >
-                        {expanded.has(q.id) ? "Hide sources" : `Sources (${q.sources.length})`}
-                      </button>
+                    {editingId === q.id ? null : (
+                      <>
+                        {q.status !== "failed" && (
+                          <button
+                            onClick={() => startEdit(q)}
+                            disabled={generating || savingEdit}
+                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            {q.answer_text ? "Edit" : "Write answer"}
+                          </button>
+                        )}
+                        {q.answer_text && q.status !== "approved" && (
+                          <button
+                            onClick={() => handleApprove(q)}
+                            disabled={generating || savingEdit}
+                            className="rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 disabled:opacity-60"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {q.status === "approved" && (
+                          <button
+                            onClick={() => handleUnapprove(q)}
+                            disabled={generating || savingEdit}
+                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            Unapprove
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleRegenerate(q.id)}
+                          disabled={generating || savingEdit}
+                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                        >
+                          Regenerate
+                        </button>
+                        {q.sources.length > 0 && (
+                          <button
+                            onClick={() => toggleSources(q.id)}
+                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                          >
+                            {expanded.has(q.id)
+                              ? "Hide sources"
+                              : `Sources (${q.sources.length})`}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -722,6 +1058,51 @@ export default function QuestionnaireDetailPage() {
           <p className="mt-6 text-center text-xs text-gray-500">
             AI drafts - please review before sending. Not legal advice.
           </p>
+        </div>
+      )}
+
+      {/* Approve all confirmation */}
+      {showApproveAll && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowApproveAll(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm approve all"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-gray-900">
+              Approve all drafted answers?
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              This will approve{" "}
+              <span className="font-medium text-gray-900">
+                {draftedWithAnswers.length}
+              </span>{" "}
+              drafted answer
+              {draftedWithAnswers.length === 1 ? "" : "s"}. Questions without
+              a drafted answer (not found, failed or pending) are skipped.
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                onClick={() => setShowApproveAll(false)}
+                disabled={approvingAll}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApproveAll}
+                disabled={approvingAll}
+                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+              >
+                {approvingAll ? "Approving..." : "Approve all"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

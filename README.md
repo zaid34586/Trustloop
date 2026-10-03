@@ -20,6 +20,7 @@ Built with Next.js (App Router), Tailwind CSS and Supabase.
    - [`supabase/documents.sql`](supabase/documents.sql)
    - [`supabase/chunks.sql`](supabase/chunks.sql)
    - [`supabase/questionnaires.sql`](supabase/questionnaires.sql)
+   - [`supabase/review.sql`](supabase/review.sql)
    These create the `profiles`, `documents`, `document_chunks`,
    `questionnaires` and `questions` tables with Row Level Security, the
    `search_chunks` function, and the private storage buckets. **You must
