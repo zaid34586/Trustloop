@@ -74,11 +74,13 @@ function Badge({ label, style }: { label: string; style: string }) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: string | null }) {
+  const value = status ?? "";
+  if (!value) return null;
   return (
     <Badge
-      label={status.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-      style={questionStatusStyles[status] ?? "bg-gray-100 text-gray-600"}
+      label={value.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+      style={questionStatusStyles[value] ?? "bg-gray-100 text-gray-600"}
     />
   );
 }
@@ -198,11 +200,40 @@ export default function QuestionnaireDetailPage() {
       setLoading(false);
       return;
     }
-    setQuestionnaire(qnr as Questionnaire);
-    setQuestions((qs ?? []) as Question[]);
+
+    // Normalise every field the UI relies on. The questions table on the
+    // live database can return null for optional columns (most importantly
+    // `sources`), and rendering `q.sources.length` on null crashed the page.
+    const questionnaireRow: Questionnaire = {
+      id: (qnr as Questionnaire).id ?? questionnaireId,
+      file_name: (qnr as Questionnaire).file_name ?? "Untitled questionnaire",
+      status: (qnr as Questionnaire).status ?? "uploaded",
+      total_questions: (qnr as Questionnaire).total_questions ?? 0,
+      error_message: (qnr as Questionnaire).error_message ?? null,
+      created_at: (qnr as Questionnaire).created_at ?? "",
+    };
+    const questionRows: Question[] = ((qs ?? []) as Question[]).map((q) => ({
+      id: q.id,
+      row_number: q.row_number ?? 0,
+      question_text: q.question_text ?? "",
+      answer_text: q.answer_text ?? null,
+      confidence: q.confidence ?? null,
+      sources: Array.isArray(q.sources)
+        ? q.sources.map((s) => ({
+            file_name: s?.file_name ?? "",
+            excerpt: s?.excerpt ?? "",
+          }))
+        : [],
+      status: q.status ?? "pending",
+      edited_by_user: q.edited_by_user ?? false,
+      approved_at: q.approved_at ?? null,
+    }));
+
+    setQuestionnaire(questionnaireRow);
+    setQuestions(questionRows);
     setLoading(false);
 
-    if ((qnr as Questionnaire).status === "uploaded") {
+    if (questionnaireRow.status === "uploaded") {
       loadPreview();
     }
   }, [questionnaireId, loadPreview]);
@@ -244,7 +275,12 @@ export default function QuestionnaireDetailPage() {
       if (!response.ok) {
         setError(data?.error ?? "Could not extract the questions.");
       } else {
-        if (data.message) setNotice(data.message);
+        setNotice(
+          data?.message ??
+            (typeof data?.total === "number"
+              ? `Extracted ${data.total} questions. They are listed below — review them, then generate answers.`
+              : "Questions extracted.")
+        );
         await loadAll();
       }
     } catch {
@@ -261,10 +297,10 @@ export default function QuestionnaireDetailPage() {
         return r
           ? {
               ...q,
-              status: r.status,
-              answer_text: r.answer_text,
-              confidence: r.confidence,
-              sources: r.sources,
+              status: r.status ?? q.status,
+              answer_text: r.answer_text ?? null,
+              confidence: r.confidence ?? null,
+              sources: Array.isArray(r.sources) ? r.sources : [],
             }
           : q;
       })

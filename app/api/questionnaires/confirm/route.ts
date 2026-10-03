@@ -57,13 +57,6 @@ export async function POST(request: Request) {
     );
   }
 
-  if (questionnaire.status !== "uploaded") {
-    return NextResponse.json(
-      { error: "Questions were already extracted for this questionnaire." },
-      { status: 400 }
-    );
-  }
-
   const { data: file, error: downloadError } = await supabase.storage
     .from("questionnaires")
     .download(questionnaire.file_path);
@@ -94,6 +87,11 @@ export async function POST(request: Request) {
       row_number: number;
       question_text: string;
       status: "pending";
+      answer_text: null;
+      confidence: null;
+      sources: { file_name: string; excerpt: string }[];
+      edited_by_user: boolean;
+      approved_at: null;
     }[] = [];
     let totalFound = 0;
 
@@ -114,6 +112,12 @@ export async function POST(request: Request) {
         row_number: rowNumber,
         question_text: text,
         status: "pending",
+        answer_text: null,
+        confidence: null,
+        // Written explicitly so rows never depend on a column default.
+        sources: [],
+        edited_by_user: false,
+        approved_at: null,
       });
     }
 
@@ -127,11 +131,42 @@ export async function POST(request: Request) {
       );
     }
 
+    // ------------------------------------------------------------
+    // Idempotent write: re-running this endpoint REPLACES the old
+    // questions instead of failing or duplicating them.
+    //   1. delete any existing questions for this questionnaire
+    //   2. insert the freshly extracted rows
+    //   3. one UPDATE sets status + question count together
+    // On a failed insert we restore an empty, consistent state so a
+    // retry starts clean; a failed UPDATE leaves the rows in place
+    // and a retry re-runs the whole replace safely.
+    // ------------------------------------------------------------
+    const { error: deleteError } = await supabase
+      .from("questions")
+      .delete()
+      .eq("questionnaire_id", questionnaire_id);
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: "Could not replace the existing questions. Please try again." },
+        { status: 500 }
+      );
+    }
+
     const { error: insertError } = await supabase
       .from("questions")
       .insert(rows);
 
     if (insertError) {
+      // Keep the questionnaire consistent with "no questions yet".
+      await supabase
+        .from("questionnaires")
+        .update({
+          status: "uploaded",
+          total_questions: 0,
+          error_message: "Could not save the extracted questions.",
+        })
+        .eq("id", questionnaire_id);
       return NextResponse.json(
         { error: "Could not save the questions. Please try again." },
         { status: 500 }
@@ -152,7 +187,10 @@ export async function POST(request: Request) {
 
     if (updateError) {
       return NextResponse.json(
-        { error: "Questions saved but the status could not be updated." },
+        {
+          error:
+            "Questions were extracted but the questionnaire status could not be updated. Please try again.",
+        },
         { status: 500 }
       );
     }

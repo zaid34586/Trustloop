@@ -10,7 +10,7 @@ type Questionnaire = {
   file_name: string;
   status: string;
   total_questions: number;
-  created_at: string;
+  created_at: string | null;
 };
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -23,12 +23,15 @@ const statusStyles: Record<string, string> = {
   failed: "bg-red-50 text-red-700",
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const label = status.charAt(0).toUpperCase() + status.slice(1);
+function StatusBadge({ status }: { status: string | null }) {
+  const value = status ?? "";
+  const label = value
+    ? value.charAt(0).toUpperCase() + value.slice(1)
+    : "—";
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        statusStyles[status] ?? "bg-gray-100 text-gray-700"
+        statusStyles[value] ?? "bg-gray-100 text-gray-700"
       }`}
     >
       {label}
@@ -42,8 +45,11 @@ function sanitizeFileName(name: string): string {
   return safe && safe !== "." ? safe : "file";
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -75,7 +81,17 @@ export default function QuestionnairesPage() {
     if (error) {
       setError("Could not load your questionnaires. Please try again.");
     } else {
-      setQuestionnaires(data ?? []);
+      // Guard against missing/null fields so one bad row can never
+      // crash the whole list.
+      setQuestionnaires(
+        (data ?? []).map((qnr) => ({
+          id: qnr.id,
+          file_name: qnr.file_name ?? "Untitled questionnaire",
+          status: qnr.status ?? "uploaded",
+          total_questions: qnr.total_questions ?? 0,
+          created_at: qnr.created_at ?? null,
+        })) as Questionnaire[]
+      );
       setCounts({});
     }
     setLoadingList(false);
