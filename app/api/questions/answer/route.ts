@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import {
   AiConfigError,
   AiRateLimitError,
-  completeAi,
+  completeAiJson,
+  extractJsonObject,
   getAiConfig,
 } from "@/lib/ai";
 
@@ -27,17 +28,9 @@ type Chunk = { chunk_id: string; document_id: string; file_name: string; content
 type AiResult = { found: boolean; answer: string; confidence: string };
 
 function parseAiJson(raw: string): AiResult {
-  const cleaned = raw
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error("No JSON found in the AI response.");
-  }
-  const parsed = JSON.parse(cleaned.slice(start, end + 1));
+  // extractJsonObject strips thinking blocks and code fences, then
+  // returns the first JSON object found in the text.
+  const parsed = JSON.parse(extractJsonObject(raw));
   if (typeof parsed.found !== "boolean" || typeof parsed.answer !== "string") {
     throw new Error("Unexpected JSON shape in the AI response.");
   }
@@ -137,15 +130,17 @@ export async function POST(request: Request) {
           )
           .join("\n\n---\n\n");
 
-        let raw: string;
+        // The parse callback runs inside the retry loop: if the output
+        // cannot be parsed as the expected JSON, the next model is tried.
         try {
-          raw = await completeAi({
+          parsed = await completeAiJson<AiResult>({
             supabase,
             userId: user.id,
             route: "/api/questions/answer",
             system: SYSTEM_PROMPT,
             prompt: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestionnaire question: ${question.question_text}`,
             maxTokens: 512,
+            parse: parseAiJson,
           });
         } catch (err) {
           // Rate limit: stop the batch without marking this question failed.
@@ -155,7 +150,6 @@ export async function POST(request: Request) {
           }
           throw err;
         }
-        parsed = parseAiJson(raw);
       }
 
       if (!parsed || !parsed.found || !parsed.answer.trim()) {

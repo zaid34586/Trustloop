@@ -74,11 +74,19 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 AI_PROVIDER=anthropic        # or "openrouter" (default: anthropic)
 AI_API_KEY=<your Anthropic or OpenRouter API key>
 AI_MODEL=<e.g. claude-sonnet-4-20250514 or openai/gpt-4o-mini>
+AI_MODEL_FALLBACKS=<optional: comma-separated fallback model IDs>
 ```
 
 - `AI_PROVIDER` — `anthropic` (default) uses the Claude API,
   `openrouter` uses OpenRouter's OpenAI-compatible chat completions API.
 - `AI_API_KEY` and `AI_MODEL` must match the chosen provider.
+- `AI_MODEL_FALLBACKS` — optional comma-separated model IDs tried when
+  the primary model fails. With OpenRouter they are sent as the
+  `models` array so OpenRouter fails over automatically; on top of that
+  the app retries once (max 2 retries) when a call fails with HTTP 429,
+  5xx, a timeout, or returns text that cannot be parsed as the expected
+  JSON. Only **one** `ai_usage` row is counted per request, no matter
+  how many retries run.
 - Never commit `.env` files — they are already excluded via
   `.gitignore`. No secrets are stored in this repository.
 
@@ -109,8 +117,9 @@ Open [http://localhost:3000](http://localhost:3000).
 The repo is ready for Vercel. Import it in Vercel and add **all** the
 environment variables from step 2 (`NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, `AI_PROVIDER`,
-`AI_API_KEY`, `AI_MODEL`) in the project settings, then deploy. Also add
-your production `/auth/callback` URL to Supabase's redirect URLs (step 3).
+`AI_API_KEY`, `AI_MODEL`, and optionally `AI_MODEL_FALLBACKS`) in the
+project settings, then deploy. Also add your production `/auth/callback`
+URL to Supabase's redirect URLs (step 3).
 
 ## Routes
 
