@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,7 +10,24 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Shown after the user confirmed their email (/auth/callback?verified=1).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "1") {
+      setVerified(true);
+      // Keep the URL clean so a refresh does not re-show the banner.
+      params.delete("verified");
+      const query = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        query ? `?${query}` : window.location.pathname
+      );
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +73,15 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8"
         >
+          {verified && (
+            <div
+              role="status"
+              className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
+            >
+              Your email is verified — you can now log in.
+            </div>
+          )}
+
           {error && (
             <div
               role="alert"

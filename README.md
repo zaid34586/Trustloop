@@ -99,9 +99,9 @@ password-reset emails can reach the app:
 - `http://localhost:3000/auth/callback` (local)
 - `https://<your-domain>/auth/callback` (production)
 
-Email confirmation links land on `/auth/callback` → `/dashboard`, and
-password reset links land on `/auth/callback?next=/reset-password` →
-`/reset-password`.
+Email confirmation links land on `/auth/callback` → `/login` (with an
+"email verified" confirmation), and password reset links land on
+`/auth/callback?next=/reset-password` → `/reset-password`.
 
 ### 4. Run locally
 
@@ -130,7 +130,7 @@ URL to Supabase's redirect URLs (step 3).
 | `/login`                     | Log in (with "Forgot password?" link)               |
 | `/forgot-password`           | Request a password reset email                      |
 | `/reset-password`            | Set a new password (arrived at from the reset email)|
-| `/auth/callback`             | Exchanges the Supabase email link code for a session|
+| `/auth/callback`             | Handles email links: verification → `/login`, reset → `/reset-password` |
 | `/dashboard`                 | Dashboard stats (protected)                         |
 | `/dashboard/ask`             | Ask questions about your documents (protected)      |
 | `/dashboard/documents`       | Upload / manage security documents (protected)      |

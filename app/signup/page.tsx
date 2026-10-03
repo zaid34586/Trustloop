@@ -24,9 +24,9 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        // The confirmation link lands on /auth/callback, which exchanges
-        // the code for a session and then opens the dashboard.
-        emailRedirectTo: `${siteUrl}/auth/callback`,
+        // The confirmation link lands on /auth/callback, which then
+        // sends the user to the login page with a "verified" banner.
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/login`,
       },
     });
 
