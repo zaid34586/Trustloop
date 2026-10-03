@@ -14,10 +14,16 @@ Built with Next.js (App Router), Tailwind CSS and Supabase.
 ### 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. In the Supabase Dashboard, open **SQL Editor**, paste the contents of
-   [`supabase/schema.sql`](supabase/schema.sql) and run it. This creates the
-   `profiles` table with Row Level Security and an automatic profile row for
-   every new user. **You must run this SQL before signing up.**
+2. In the Supabase Dashboard, open **SQL Editor** and run **each** of the
+   following files (in order):
+   - [`supabase/schema.sql`](supabase/schema.sql)
+   - [`supabase/documents.sql`](supabase/documents.sql)
+   - [`supabase/chunks.sql`](supabase/chunks.sql)
+   - [`supabase/questionnaires.sql`](supabase/questionnaires.sql)
+   These create the `profiles`, `documents`, `document_chunks`,
+   `questionnaires` and `questions` tables with Row Level Security, the
+   `search_chunks` function, and the private storage buckets. **You must
+   run this SQL before signing up.**
 3. Go to **Settings > API** and copy the **Project URL** and the
    **anon/public key**.
 
