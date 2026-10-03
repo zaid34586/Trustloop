@@ -31,6 +31,8 @@ It creates, from an empty database and in dependency order:
 - `questionnaires` + RLS (full CRUD)
 - `questions` + review columns (`edited_by_user`, `approved_at`) +
   `updated_at` trigger + RLS (full CRUD)
+- `ai_usage` (rate limiting: 60 AI calls/hour, 300/day) + RLS
+  (select/insert own rows) + `(user_id, created_at)` index
 - private storage buckets `documents` and `questionnaires` +
   per-bucket storage policies (own folder only)
 
@@ -45,7 +47,8 @@ Steps:
    - all public tables with RLS enabled/disabled (all must be `ENABLED`),
    - every policy (public + storage),
    - both storage buckets (both must show `public = false`),
-   - the `search_chunks` function (must be `security invoker`).
+   - the `search_chunks` function (must be `security invoker`),
+   - the `ai_usage` table, policies and index.
 
 Note: the older split scripts (`schema.sql`, `documents.sql`,
 `chunks.sql`, `questionnaires.sql`, `review.sql`) are kept for
@@ -53,23 +56,46 @@ reference only — `all.sql` is the authoritative script.
 
 ### 2. Configure environment variables
 
-Copy the example file and fill in your Supabase values:
+Copy the example file and fill in your values:
 
 ```bash
 cp .env.example .env.local
 ```
 
 ```
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=<your project url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your anon key>
-AI_API_KEY=<your Anthropic API key>
-AI_MODEL=<e.g. claude-sonnet-4-20250514>
+
+# Public site URL, used for email confirmation / password reset links
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# AI (server-side only, never exposed to the browser)
+AI_PROVIDER=anthropic        # or "openrouter" (default: anthropic)
+AI_API_KEY=<your Anthropic or OpenRouter API key>
+AI_MODEL=<e.g. claude-sonnet-4-20250514 or openai/gpt-4o-mini>
 ```
 
-Never commit `.env` files — they are already excluded via `.gitignore`.
-All Supabase settings are read from environment variables only.
+- `AI_PROVIDER` — `anthropic` (default) uses the Claude API,
+  `openrouter` uses OpenRouter's OpenAI-compatible chat completions API.
+- `AI_API_KEY` and `AI_MODEL` must match the chosen provider.
+- Never commit `.env` files — they are already excluded via
+  `.gitignore`. No secrets are stored in this repository.
 
-### 3. Run locally
+### 3. Configure Supabase Auth URLs
+
+In the Supabase dashboard go to **Authentication → URL configuration**
+and add your site URL plus these redirect URLs so confirmation and
+password-reset emails can reach the app:
+
+- `http://localhost:3000/auth/callback` (local)
+- `https://<your-domain>/auth/callback` (production)
+
+Email confirmation links land on `/auth/callback` → `/dashboard`, and
+password reset links land on `/auth/callback?next=/reset-password` →
+`/reset-password`.
+
+### 4. Run locally
 
 ```bash
 npm install
@@ -80,18 +106,32 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Deploying
 
-The repo is ready for Vercel. Import it in Vercel and add the two
-`NEXT_PUBLIC_*` environment variables from step 2 in the project settings,
-then deploy.
+The repo is ready for Vercel. Import it in Vercel and add **all** the
+environment variables from step 2 (`NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, `AI_PROVIDER`,
+`AI_API_KEY`, `AI_MODEL`) in the project settings, then deploy. Also add
+your production `/auth/callback` URL to Supabase's redirect URLs (step 3).
 
 ## Routes
 
-| Route                        | Description                                    |
-| ---------------------------- | ---------------------------------------------- |
-| `/`                          | Landing page                                   |
-| `/signup`                    | Create an account (email + password)           |
-| `/login`                     | Log in                                         |
-| `/dashboard`                 | Dashboard (protected)                          |
-| `/dashboard/documents`       | Documents (protected, placeholder)             |
-| `/dashboard/questionnaires`  | Questionnaires (protected, placeholder)        |
-| `/dashboard/settings`        | Settings (protected, placeholder)              |
+| Route                        | Description                                         |
+| ---------------------------- | --------------------------------------------------- |
+| `/`                          | Landing page                                        |
+| `/signup`                    | Create an account (email + password)                |
+| `/login`                     | Log in (with "Forgot password?" link)               |
+| `/forgot-password`           | Request a password reset email                      |
+| `/reset-password`            | Set a new password (arrived at from the reset email)|
+| `/auth/callback`             | Exchanges the Supabase email link code for a session|
+| `/dashboard`                 | Dashboard stats (protected)                         |
+| `/dashboard/ask`             | Ask questions about your documents (protected)      |
+| `/dashboard/documents`       | Upload / manage security documents (protected)      |
+| `/dashboard/questionnaires`  | Upload / manage questionnaires (protected)          |
+| `/dashboard/questionnaires/[id]` | Review, approve and export answers (protected)  |
+| `/dashboard/settings`        | Profile + change password (protected)               |
+
+API routes: `/api/ask`, `/api/documents/process`,
+`/api/questionnaires/preview`, `/api/questionnaires/confirm`,
+`/api/questionnaires/[id]/export`, `/api/questions/answer`.
+
+AI calls are rate limited per user: **60 requests/hour and 300/day**
+(counted in the `ai_usage` table); exceeding either returns HTTP 429.

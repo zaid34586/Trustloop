@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignupPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,37 +16,31 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (password.length < 8) {
+      setError("Your new password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("The two passwords do not match.");
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    const { data, error } = await supabase.auth.signUp({
-      email,
+    const { error: updateError } = await supabase.auth.updateUser({
       password,
-      options: {
-        // The confirmation link lands on /auth/callback, which exchanges
-        // the code for a session and then opens the dashboard.
-        emailRedirectTo: `${siteUrl}/auth/callback`,
-      },
     });
 
-    if (error) {
-      if (error.message.toLowerCase().includes("already registered")) {
-        setError("An account with this email already exists. Try logging in instead.");
-      } else {
-        setError(error.message);
-      }
+    if (updateError) {
+      setError(updateError.message);
       setLoading(false);
       return;
     }
 
-    // If email confirmation is required, there is no active session yet.
-    if (!data.session) {
-      setSuccess(true);
-      setLoading(false);
-      return;
-    }
-
+    setSuccess(true);
+    setLoading(false);
     router.push("/dashboard");
     router.refresh();
   }
@@ -59,10 +53,11 @@ export default function SignupPage() {
             Trustloop
           </Link>
           <h1 className="mt-4 text-2xl font-bold text-gray-900">
-            Get early access
+            Choose a new password
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            Create your account to start answering questionnaires faster.
+            Set a new password for your account, then you&apos;ll be taken to
+            your dashboard.
           </p>
         </div>
 
@@ -84,35 +79,16 @@ export default function SignupPage() {
               role="status"
               className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
             >
-              Account created! Check your email to confirm your address, then
-              log in.
+              Password updated! Taking you to your dashboard...
             </div>
           )}
 
           <div className="mb-4">
             <label
-              htmlFor="email"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="you@company.com"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label
               htmlFor="password"
               className="mb-1 block text-sm font-medium text-gray-700"
             >
-              Password
+              New password
             </label>
             <input
               id="password"
@@ -126,18 +102,39 @@ export default function SignupPage() {
             />
           </div>
 
+          <div className="mb-6">
+            <label
+              htmlFor="confirm-password"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Confirm new password
+            </label>
+            <input
+              id="confirm-password"
+              type="password"
+              required
+              minLength={8}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              placeholder="Repeat the new password"
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
             className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? "Saving..." : "Set new password"}
           </button>
 
           <p className="mt-4 text-center text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-primary-600 hover:underline">
-              Log in
+            <Link
+              href="/login"
+              className="font-medium text-primary-600 hover:underline"
+            >
+              Back to login
             </Link>
           </p>
         </form>

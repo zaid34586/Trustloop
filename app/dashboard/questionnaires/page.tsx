@@ -55,7 +55,7 @@ export default function QuestionnairesPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
-  const [answeredCounts, setAnsweredCounts] = useState<Record<string, number>>({});
+  const [counts, setCounts] = useState<Record<string, { total: number; answered: number }>>({});
   const [loadingList, setLoadingList] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadingName, setUploadingName] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export default function QuestionnairesPage() {
       setError("Could not load your questionnaires. Please try again.");
     } else {
       setQuestionnaires(data ?? []);
-      setAnsweredCounts({});
+      setCounts({});
     }
     setLoadingList(false);
   }, []);
@@ -85,24 +85,41 @@ export default function QuestionnairesPage() {
     loadQuestionnaires();
   }, [loadQuestionnaires]);
 
-  // Count answered questions (drafted / not_found / approved) per questionnaire.
+  // Total and answered counts come from head:true count queries, so no
+  // question rows are ever loaded into the browser.
   useEffect(() => {
-    if (questionnaires.length === 0) return;
+    if (questionnaires.length === 0) {
+      setCounts({});
+      return;
+    }
     let cancelled = false;
 
     async function loadCounts() {
       const supabase = createClient();
-      const { data } = await supabase
-        .from("questions")
-        .select("questionnaire_id, status");
-      if (cancelled || !data) return;
-      const counts: Record<string, number> = {};
-      for (const row of data as { questionnaire_id: string; status: string }[]) {
-        if (["drafted", "not_found", "approved"].includes(row.status)) {
-          counts[row.questionnaire_id] = (counts[row.questionnaire_id] ?? 0) + 1;
-        }
-      }
-      setAnsweredCounts(counts);
+      const entries = await Promise.all(
+        questionnaires.map(async (qnr) => {
+          const [totalRes, answeredRes] = await Promise.all([
+            supabase
+              .from("questions")
+              .select("id", { count: "exact", head: true })
+              .eq("questionnaire_id", qnr.id),
+            supabase
+              .from("questions")
+              .select("id", { count: "exact", head: true })
+              .eq("questionnaire_id", qnr.id)
+              .in("status", ["drafted", "not_found", "approved"]),
+          ]);
+          return [
+            qnr.id,
+            {
+              total: totalRes.count ?? 0,
+              answered: answeredRes.count ?? 0,
+            },
+          ] as const;
+        })
+      );
+      if (cancelled) return;
+      setCounts(Object.fromEntries(entries));
     }
 
     loadCounts();
@@ -342,10 +359,10 @@ export default function QuestionnairesPage() {
                         <StatusBadge status={qnr.status} />
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {qnr.total_questions}
+                        {counts[qnr.id]?.total ?? qnr.total_questions}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {answeredCounts[qnr.id] ?? 0}
+                        {counts[qnr.id]?.answered ?? 0}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
@@ -388,8 +405,9 @@ export default function QuestionnairesPage() {
                         {qnr.file_name}
                       </Link>
                       <p className="mt-1 text-xs text-gray-500">
-                        {formatDate(qnr.created_at)} · {qnr.total_questions}{" "}
-                        questions · {answeredCounts[qnr.id] ?? 0} answered
+                        {formatDate(qnr.created_at)} ·{" "}
+                        {counts[qnr.id]?.total ?? qnr.total_questions}{" "}
+                        questions · {counts[qnr.id]?.answered ?? 0} answered
                       </p>
                     </div>
                     <StatusBadge status={qnr.status} />

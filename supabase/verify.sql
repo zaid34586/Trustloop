@@ -58,3 +58,29 @@ from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public'
   and p.proname = 'search_chunks';
+
+-- ------------------------------------------------------------
+-- 5. ai_usage (rate limiting) — table + RLS enabled
+-- ------------------------------------------------------------
+select
+  c.relname as table_name,
+  case when c.relrowsecurity then 'ENABLED' else 'disabled' end as rls
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relkind = 'r'
+  and c.relname = 'ai_usage';
+
+-- ai_usage policies (must show select + insert, own rows only)
+select tablename, policyname, cmd, qual, with_check
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'ai_usage'
+order by policyname;
+
+-- ai_usage index used by the rate-limit window queries
+select indexname, indexdef
+from pg_indexes
+where schemaname = 'public'
+  and tablename = 'ai_usage'
+order by indexname;

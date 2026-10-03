@@ -2,15 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignupPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -20,35 +17,24 @@ export default function SignupPage() {
 
     const supabase = createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    const { data, error } = await supabase.auth.signUp({
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
-      password,
-      options: {
-        // The confirmation link lands on /auth/callback, which exchanges
-        // the code for a session and then opens the dashboard.
-        emailRedirectTo: `${siteUrl}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      if (error.message.toLowerCase().includes("already registered")) {
-        setError("An account with this email already exists. Try logging in instead.");
-      } else {
-        setError(error.message);
+      {
+        // The callback route exchanges the code, then sends the user
+        // to the page where they can choose a new password.
+        redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
       }
+    );
+
+    if (resetError) {
+      setError(resetError.message);
       setLoading(false);
       return;
     }
 
-    // If email confirmation is required, there is no active session yet.
-    if (!data.session) {
-      setSuccess(true);
-      setLoading(false);
-      return;
-    }
-
-    router.push("/dashboard");
-    router.refresh();
+    setSent(true);
+    setLoading(false);
   }
 
   return (
@@ -59,10 +45,11 @@ export default function SignupPage() {
             Trustloop
           </Link>
           <h1 className="mt-4 text-2xl font-bold text-gray-900">
-            Get early access
+            Reset your password
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            Create your account to start answering questionnaires faster.
+            Enter your email and we&apos;ll send you a link to set a new
+            password.
           </p>
         </div>
 
@@ -79,17 +66,18 @@ export default function SignupPage() {
             </div>
           )}
 
-          {success && (
+          {sent && (
             <div
               role="status"
               className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
             >
-              Account created! Check your email to confirm your address, then
-              log in.
+              Check your email — we sent a password reset link to{" "}
+              <span className="font-medium">{email}</span>. The link expires
+              shortly, so open it soon.
             </div>
           )}
 
-          <div className="mb-4">
+          <div className="mb-6">
             <label
               htmlFor="email"
               className="mb-1 block text-sm font-medium text-gray-700"
@@ -107,36 +95,20 @@ export default function SignupPage() {
             />
           </div>
 
-          <div className="mb-6">
-            <label
-              htmlFor="password"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="At least 8 characters"
-            />
-          </div>
-
           <button
             type="submit"
             disabled={loading}
             className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? "Sending..." : "Send reset link"}
           </button>
 
           <p className="mt-4 text-center text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-primary-600 hover:underline">
+            Remember your password?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-primary-600 hover:underline"
+            >
               Log in
             </Link>
           </p>

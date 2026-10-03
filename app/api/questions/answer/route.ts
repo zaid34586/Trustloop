@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  AiConfigError,
+  AiRateLimitError,
+  completeAi,
+  getAiConfig,
+} from "@/lib/ai";
 
 export const maxDuration = 60;
 
@@ -51,11 +57,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not logged in." }, { status: 401 });
   }
 
-  const apiKey = process.env.AI_API_KEY;
-  const model = process.env.AI_MODEL;
-  if (!apiKey || !model) {
+  // Fail fast with a clear message if the AI env vars are missing.
+  try {
+    getAiConfig();
+  } catch (err) {
     return NextResponse.json(
-      { error: "AI is not configured yet. Please set AI_API_KEY and AI_MODEL." },
+      { error: err instanceof AiConfigError ? err.message : "AI is not configured." },
       { status: 500 }
     );
   }
@@ -84,6 +91,9 @@ export async function POST(request: Request) {
     confidence: string | null;
     sources: { file_name: string; excerpt: string }[];
   }[] = [];
+
+  // Set when the per-call rate limit kicks in mid-batch.
+  let rateLimitedMessage: string | null = null;
 
   for (const id of ids) {
     // Ownership: RLS also scopes this, but we need the row anyway.
@@ -127,36 +137,23 @@ export async function POST(request: Request) {
           )
           .join("\n\n---\n\n");
 
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 512,
+        let raw: string;
+        try {
+          raw = await completeAi({
+            supabase,
+            userId: user.id,
+            route: "/api/questions/answer",
             system: SYSTEM_PROMPT,
-            messages: [
-              {
-                role: "user",
-                content: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestionnaire question: ${question.question_text}`,
-              },
-            ],
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("The AI service could not be reached.");
-        }
-
-        const data = await response.json();
-        const raw: string | undefined = data?.content?.find(
-          (block: { type: string }) => block.type === "text"
-        )?.text;
-        if (!raw) {
-          throw new Error("The AI returned an empty response.");
+            prompt: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestionnaire question: ${question.question_text}`,
+            maxTokens: 512,
+          });
+        } catch (err) {
+          // Rate limit: stop the batch without marking this question failed.
+          if (err instanceof AiRateLimitError) {
+            rateLimitedMessage = err.message;
+            break;
+          }
+          throw err;
         }
         parsed = parseAiJson(raw);
       }
@@ -247,6 +244,15 @@ export async function POST(request: Request) {
       .from("questionnaires")
       .update({ status: pendingCount ? "answering" : "ready" })
       .eq("id", qnrId);
+  }
+
+  // Friendly 429 if the user hit the hourly/daily AI limit mid-batch.
+  // Anything already saved is reloaded by the UI after this response.
+  if (rateLimitedMessage) {
+    return NextResponse.json(
+      { error: rateLimitedMessage, message: rateLimitedMessage },
+      { status: 429 }
+    );
   }
 
   return NextResponse.json({ results });

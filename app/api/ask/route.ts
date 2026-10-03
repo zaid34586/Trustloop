@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  AiConfigError,
+  AiRateLimitError,
+  completeAi,
+  getAiConfig,
+} from "@/lib/ai";
+
+export const maxDuration = 60;
 
 const SYSTEM_PROMPT = `You are Trustloop, an assistant that answers questions strictly from the user's security documents.
 
@@ -20,11 +28,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not logged in." }, { status: 401 });
   }
 
-  const apiKey = process.env.AI_API_KEY;
-  const model = process.env.AI_MODEL;
-  if (!apiKey || !model) {
+  // Fail fast with a clear message if the AI env vars are missing.
+  try {
+    getAiConfig();
+  } catch (err) {
     return NextResponse.json(
-      { error: "AI is not configured yet. Please set AI_API_KEY and AI_MODEL." },
+      { error: err instanceof AiConfigError ? err.message : "AI is not configured." },
       { status: 500 }
     );
   }
@@ -92,44 +101,14 @@ export async function POST(request: Request) {
     .join("\n\n---\n\n");
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestion: ${question}`,
-          },
-        ],
-      }),
+    const answer = await completeAi({
+      supabase,
+      userId: user.id,
+      route: "/api/ask",
+      system: SYSTEM_PROMPT,
+      prompt: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestion: ${question}`,
+      maxTokens: 1024,
     });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "The AI service could not be reached. Please try again." },
-        { status: 502 }
-      );
-    }
-
-    const data = await response.json();
-    const answer: string | undefined = data?.content?.find(
-      (block: { type: string }) => block.type === "text"
-    )?.text;
-
-    if (!answer) {
-      return NextResponse.json(
-        { error: "The AI returned an empty answer. Please try again." },
-        { status: 502 }
-      );
-    }
 
     return NextResponse.json({
       answer,
@@ -138,7 +117,16 @@ export async function POST(request: Request) {
         content: chunk.content,
       })),
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof AiRateLimitError) {
+      return NextResponse.json(
+        { error: err.message, message: err.message },
+        { status: 429 }
+      );
+    }
+    if (err instanceof AiConfigError) {
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
     return NextResponse.json(
       { error: "The AI service could not be reached. Please try again." },
       { status: 502 }

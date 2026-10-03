@@ -330,7 +330,37 @@ create trigger questions_set_updated_at
 
 
 -- ------------------------------------------------------------
--- 8. Storage buckets — private "documents" and "questionnaires"
+-- 8. ai_usage — one row per AI call, used for rate limiting
+--    (60 calls/hour, 300/day). Read+written by the API routes
+--    with the user's session. RLS: select + insert own rows only.
+-- ------------------------------------------------------------
+create table if not exists public.ai_usage (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  route text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ai_usage_user_created_idx
+  on public.ai_usage (user_id, created_at);
+
+alter table public.ai_usage enable row level security;
+
+drop policy if exists "Users can view own usage" on public.ai_usage;
+create policy "Users can view own usage"
+  on public.ai_usage
+  for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own usage" on public.ai_usage;
+create policy "Users can insert own usage"
+  on public.ai_usage
+  for insert
+  with check (auth.uid() = user_id);
+
+
+-- ------------------------------------------------------------
+-- 9. Storage buckets — private "documents" and "questionnaires"
 --    App usage: upload / download / signed URL / remove.
 -- ------------------------------------------------------------
 insert into storage.buckets (id, name, public)
@@ -343,7 +373,7 @@ on conflict (id) do nothing;
 
 
 -- ------------------------------------------------------------
--- 9. Storage policies — per bucket, own folder only.
+-- 10. Storage policies — per bucket, own folder only.
 --    App file paths are "{user_id}/{uuid}-{safe-name}", so the
 --    first folder segment must equal the caller's uid.
 --    Operations used by the app: upload (insert), read/download
@@ -414,7 +444,7 @@ create policy "Users can delete from own questionnaires folder"
 
 
 -- ------------------------------------------------------------
--- 10. Privileges — make sure the logged-in role can reach the
+-- 11. Privileges — make sure the logged-in role can reach the
 --     tables/functions; RLS then restricts every query to the
 --     user's own rows. (Harmless to re-run.)
 -- ------------------------------------------------------------
