@@ -15,7 +15,7 @@ create table if not exists public.documents (
   created_at timestamptz not null default now()
 );
 
--- 2. Row Level Security: a user can only select/insert/delete their own rows
+-- 2. Row Level Security: a user can only select/insert/update/delete their own rows
 alter table public.documents enable row level security;
 
 drop policy if exists "Users can view own documents" on public.documents;
@@ -28,6 +28,15 @@ drop policy if exists "Users can insert own documents" on public.documents;
 create policy "Users can insert own documents"
   on public.documents
   for insert
+  with check (auth.uid() = user_id);
+
+-- UPDATE is required: /api/documents/process sets status =
+-- 'processing' | 'ready' | 'failed' and error_message on this table.
+drop policy if exists "Users can update own documents" on public.documents;
+create policy "Users can update own documents"
+  on public.documents
+  for update
+  using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
 drop policy if exists "Users can delete own documents" on public.documents;

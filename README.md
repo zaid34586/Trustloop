@@ -14,19 +14,42 @@ Built with Next.js (App Router), Tailwind CSS and Supabase.
 ### 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. In the Supabase Dashboard, open **SQL Editor** and run **each** of the
-   following files (in order):
-   - [`supabase/schema.sql`](supabase/schema.sql)
-   - [`supabase/documents.sql`](supabase/documents.sql)
-   - [`supabase/chunks.sql`](supabase/chunks.sql)
-   - [`supabase/questionnaires.sql`](supabase/questionnaires.sql)
-   - [`supabase/review.sql`](supabase/review.sql)
-   These create the `profiles`, `documents`, `document_chunks`,
-   `questionnaires` and `questions` tables with Row Level Security, the
-   `search_chunks` function, and the private storage buckets. **You must
-   run this SQL before signing up.**
+2. Set up the database — see **[Database setup](#database-setup)** below.
+   You must run the SQL **before signing up**, otherwise signups fail
+   (the signup trigger needs the `profiles` table).
 3. Go to **Settings > API** and copy the **Project URL** and the
    **anon/public key**.
+
+## Database setup
+
+Everything lives in one idempotent script: [`supabase/all.sql`](supabase/all.sql).
+It creates, from an empty database and in dependency order:
+
+- `profiles` + the signup trigger (`on_auth_user_created`)
+- `documents` + RLS (select/insert/update/delete)
+- `document_chunks` + GIN index + the `search_chunks` function + RLS
+- `questionnaires` + RLS (full CRUD)
+- `questions` + review columns (`edited_by_user`, `approved_at`) +
+  `updated_at` trigger + RLS (full CRUD)
+- private storage buckets `documents` and `questionnaires` +
+  per-bucket storage policies (own folder only)
+
+Steps:
+
+1. In the Supabase Dashboard, open **SQL Editor** → **New query**.
+2. Paste the contents of `supabase/all.sql` and **run it once**.
+   The script is safe to run again (every statement is idempotent),
+   so you can re-run it after future changes without errors.
+3. Paste and run [`supabase/verify.sql`](supabase/verify.sql) — it is
+   read-only and prints:
+   - all public tables with RLS enabled/disabled (all must be `ENABLED`),
+   - every policy (public + storage),
+   - both storage buckets (both must show `public = false`),
+   - the `search_chunks` function (must be `security invoker`).
+
+Note: the older split scripts (`schema.sql`, `documents.sql`,
+`chunks.sql`, `questionnaires.sql`, `review.sql`) are kept for
+reference only — `all.sql` is the authoritative script.
 
 ### 2. Configure environment variables
 
