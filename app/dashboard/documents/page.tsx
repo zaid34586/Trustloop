@@ -10,8 +10,29 @@ type Document = {
   file_size: number;
   file_type: string;
   status: string;
+  error_message: string | null;
   created_at: string;
 };
+
+const statusStyles: Record<string, string> = {
+  uploaded: "bg-gray-100 text-gray-700",
+  processing: "bg-amber-50 text-amber-700",
+  ready: "bg-green-50 text-green-700",
+  failed: "bg-red-50 text-red-700",
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const label = status.charAt(0).toUpperCase() + status.slice(1);
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+        statusStyles[status] ?? "bg-gray-100 text-gray-700"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_EXTENSIONS = [".pdf", ".docx"];
@@ -135,7 +156,7 @@ export default function DocumentsPage() {
         continue;
       }
 
-      const { error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from("documents")
         .insert({
           user_id: user.id,
@@ -144,7 +165,9 @@ export default function DocumentsPage() {
           file_size: file.size,
           file_type: file.type || "application/octet-stream",
           status: "uploaded",
-        });
+        })
+        .select("id")
+        .single();
 
       if (insertError) {
         await supabase.storage.from("documents").remove([filePath]);
@@ -152,6 +175,17 @@ export default function DocumentsPage() {
         setUploading(false);
         setUploadingName(null);
         continue;
+      }
+
+      // Process the document (extract text and build search chunks).
+      try {
+        await fetch("/api/documents/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ document_id: inserted.id }),
+        });
+      } catch {
+        // Ignore network errors here — the user can retry from the list.
       }
 
       setUploading(false);
@@ -163,6 +197,30 @@ export default function DocumentsPage() {
     if (inputRef.current) {
       inputRef.current.value = "";
     }
+  }
+
+  async function handleRetry(doc: Document) {
+    setBusyAction(doc.id);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/documents/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document_id: doc.id }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        setError(
+          data?.error ?? `Could not process "${doc.file_name}". Please try again.`
+        );
+      }
+    } catch {
+      setError("Could not reach the server. Please try again.");
+    }
+
+    setBusyAction(null);
+    await loadDocuments();
   }
 
   async function handleDownload(doc: Document) {
@@ -365,12 +423,24 @@ export default function DocumentsPage() {
                         {formatDate(doc.created_at)}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
-                          {doc.status}
-                        </span>
+                        <StatusBadge status={doc.status} />
+                        {doc.status === "failed" && doc.error_message && (
+                          <p className="mt-1 max-w-[160px] text-xs text-red-600">
+                            {doc.error_message}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
+                          {doc.status === "failed" && (
+                            <button
+                              onClick={() => handleRetry(doc)}
+                              disabled={busyAction === doc.id}
+                              className="rounded-lg border border-primary-200 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-60"
+                            >
+                              {busyAction === doc.id ? "..." : "Retry"}
+                            </button>
+                          )}
                           <button
                             onClick={() => handleDownload(doc)}
                             disabled={busyAction === doc.id}
@@ -413,11 +483,25 @@ export default function DocumentsPage() {
                         · {formatDate(doc.created_at)}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
-                      {doc.status}
+                    <span className="shrink-0">
+                      <StatusBadge status={doc.status} />
                     </span>
                   </div>
+                  {doc.status === "failed" && doc.error_message && (
+                    <p className="mt-2 text-xs text-red-600">
+                      {doc.error_message}
+                    </p>
+                  )}
                   <div className="mt-3 flex gap-2">
+                    {doc.status === "failed" && (
+                      <button
+                        onClick={() => handleRetry(doc)}
+                        disabled={busyAction === doc.id}
+                        className="flex-1 rounded-lg border border-primary-200 px-3 py-2 text-xs font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-60"
+                      >
+                        Retry
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDownload(doc)}
                       disabled={busyAction === doc.id}

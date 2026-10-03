@@ -32,6 +32,8 @@ cp .env.example .env.local
 ```
 NEXT_PUBLIC_SUPABASE_URL=<your project url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your anon key>
+AI_API_KEY=<your Anthropic API key>
+AI_MODEL=<e.g. claude-sonnet-4-20250514>
 ```
 
 Never commit `.env` files — they are already excluded via `.gitignore`.
