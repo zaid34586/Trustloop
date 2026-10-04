@@ -173,6 +173,14 @@ create policy "Users can delete own chunks"
 --    /api/questions/answer. security invoker => RLS applies, so
 --    results are always limited to the current user's rows.
 --    Must be created after documents + document_chunks exist.
+--
+--    IMPORTANT: websearch_to_tsquery() ANDs every word ('a' & 'b'),
+--    which almost never matches a natural-language question against a
+--    short chunk — that made both routes return 0 rows and reply
+--    "not found" instantly without ever calling the AI. The query
+--    below rebuilds the same stemmed terms as an OR query (loose)
+--    so any relevant term matches, and ranks chunks that match ALL
+--    terms first (strict) to keep precision.
 -- ------------------------------------------------------------
 create or replace function public.search_chunks(
   query_text text,
@@ -190,16 +198,30 @@ stable
 security invoker
 set search_path = public
 as $$
+  with q as (
+    select
+      websearch_to_tsquery('english', coalesce(query_text, '')) as strict_q,
+      nullif(
+        replace(
+          websearch_to_tsquery('english', coalesce(query_text, ''))::text,
+          ' & ',
+          ' | '
+        ),
+        ''
+      ) as loose_expr
+  )
   select
     dc.id as chunk_id,
     dc.document_id,
     d.file_name,
     dc.content,
-    ts_rank(dc.tsv, websearch_to_tsquery('english', query_text)) as rank
-  from public.document_chunks dc
+    ts_rank(dc.tsv, to_tsquery('english', q.loose_expr)) as rank
+  from q
+  join public.document_chunks dc
+    on dc.tsv @@ to_tsquery('english', q.loose_expr)
   join public.documents d on d.id = dc.document_id
-  where dc.tsv @@ websearch_to_tsquery('english', query_text)
-  order by rank desc
+  order by (dc.tsv @@ q.strict_q) desc,
+           ts_rank(dc.tsv, to_tsquery('english', q.loose_expr)) desc
   limit match_count;
 $$;
 

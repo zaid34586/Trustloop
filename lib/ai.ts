@@ -60,18 +60,29 @@ const REQUEST_TIMEOUT_MS = 30_000;
 // ------------------------------------------------------------
 
 export function getAiConfig(): AiConfig {
-  const provider = (process.env.AI_PROVIDER ?? "anthropic").trim().toLowerCase();
-  if (provider !== "anthropic" && provider !== "openrouter") {
-    throw new AiConfigError(
-      'AI is not configured correctly. AI_PROVIDER must be "anthropic" or "openrouter".'
-    );
-  }
-
   const apiKey = process.env.AI_API_KEY;
   const model = process.env.AI_MODEL;
   if (!apiKey || !model) {
     throw new AiConfigError(
       "AI is not configured yet. Please set AI_API_KEY and AI_MODEL."
+    );
+  }
+
+  const requested = (process.env.AI_PROVIDER ?? "").trim().toLowerCase();
+
+  // OpenRouter keys (sk-or-...) always go to OpenRouter, no matter
+  // what AI_PROVIDER says. Otherwise AI_PROVIDER decides, and the
+  // default is OpenRouter (https://openrouter.ai/api/v1).
+  let provider: AiProvider;
+  if (apiKey.startsWith("sk-or-")) {
+    provider = "openrouter";
+  } else if (requested === "anthropic") {
+    provider = "anthropic";
+  } else if (requested === "openrouter" || requested === "") {
+    provider = "openrouter";
+  } else {
+    throw new AiConfigError(
+      'AI is not configured correctly. AI_PROVIDER must be "anthropic" or "openrouter".'
     );
   }
 

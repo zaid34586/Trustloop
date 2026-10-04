@@ -71,15 +71,19 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your anon key>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 # AI (server-side only, never exposed to the browser)
-AI_PROVIDER=anthropic        # or "openrouter" (default: anthropic)
-AI_API_KEY=<your Anthropic or OpenRouter API key>
-AI_MODEL=<e.g. claude-sonnet-4-20250514 or openai/gpt-4o-mini>
+AI_PROVIDER=openrouter     # or "anthropic" (default: openrouter)
+AI_API_KEY=<your OpenRouter or Anthropic API key>
+AI_MODEL=<e.g. openai/gpt-4o-mini or claude-sonnet-4-20250514>
 AI_MODEL_FALLBACKS=<optional: comma-separated fallback model IDs>
 ```
 
-- `AI_PROVIDER` — `anthropic` (default) uses the Claude API,
-  `openrouter` uses OpenRouter's OpenAI-compatible chat completions API.
-- `AI_API_KEY` and `AI_MODEL` must match the chosen provider.
+- `AI_PROVIDER` — `openrouter` (default) uses
+  https://openrouter.ai/api/v1/chat/completions,
+  `anthropic` uses the Claude API. Keys starting with `sk-or-`
+  always use OpenRouter, whatever `AI_PROVIDER` says.
+- `AI_API_KEY` and `AI_MODEL` must match the chosen provider
+  (for OpenRouter, `AI_MODEL` is an OpenRouter model id like
+  `openai/gpt-4o-mini`).
 - `AI_MODEL_FALLBACKS` — optional comma-separated model IDs tried when
   the primary model fails. With OpenRouter they are sent as the
   `models` array so OpenRouter fails over automatically; on top of that

@@ -48,6 +48,11 @@ create policy "Users can delete own chunks"
 
 -- 4. Search function (security invoker: RLS applies, so results are
 --    always limited to the current user's chunks)
+--    websearch_to_tsquery() ANDs every word, which almost never
+--    matches a natural question against a short chunk (both routes
+--    then replied "not found" instantly without calling the AI).
+--    Rebuild the stemmed terms as an OR query and rank chunks that
+--    contain ALL terms first.
 create or replace function public.search_chunks(
   query_text text,
   match_count int default 5
@@ -64,15 +69,29 @@ stable
 security invoker
 set search_path = public
 as $$
+  with q as (
+    select
+      websearch_to_tsquery('english', coalesce(query_text, '')) as strict_q,
+      nullif(
+        replace(
+          websearch_to_tsquery('english', coalesce(query_text, ''))::text,
+          ' & ',
+          ' | '
+        ),
+        ''
+      ) as loose_expr
+  )
   select
     dc.id as chunk_id,
     dc.document_id,
     d.file_name,
     dc.content,
-    ts_rank(dc.tsv, websearch_to_tsquery('english', query_text)) as rank
-  from public.document_chunks dc
+    ts_rank(dc.tsv, to_tsquery('english', q.loose_expr)) as rank
+  from q
+  join public.document_chunks dc
+    on dc.tsv @@ to_tsquery('english', q.loose_expr)
   join public.documents d on d.id = dc.document_id
-  where dc.tsv @@ websearch_to_tsquery('english', query_text)
-  order by rank desc
+  order by (dc.tsv @@ q.strict_q) desc,
+           ts_rank(dc.tsv, to_tsquery('english', q.loose_expr)) desc
   limit match_count;
 $$;

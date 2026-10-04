@@ -77,6 +77,30 @@ export async function POST(request: Request) {
     );
   }
 
+  // Real problems must surface as errors, never as "not found".
+  // If there is no searchable text at all, an empty search result is a
+  // broken state — do not mark every question "not_found".
+  const { count: chunkCount, error: chunkCountError } = await supabase
+    .from("document_chunks")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if (chunkCountError) {
+    return NextResponse.json(
+      { error: "Could not search your documents. Please try again." },
+      { status: 500 }
+    );
+  }
+  if (!chunkCount) {
+    return NextResponse.json(
+      {
+        error:
+          "No searchable text was found in your documents. Re-process the document, then try again.",
+      },
+      { status: 422 }
+    );
+  }
+
   const results: {
     id: string;
     status: string;

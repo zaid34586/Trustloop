@@ -55,11 +55,19 @@ export async function POST(request: Request) {
   }
 
   // The user must have at least one processed document.
-  const { count: readyCount } = await supabase
+  const { count: readyCount, error: readyError } = await supabase
     .from("documents")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("status", "ready");
+
+  if (readyError) {
+    // A failed lookup is an error — never pretend the answer wasn't found.
+    return NextResponse.json(
+      { error: "Could not check your documents. Please try again." },
+      { status: 500 }
+    );
+  }
 
   if (!readyCount) {
     return NextResponse.json(
@@ -87,6 +95,29 @@ export async function POST(request: Request) {
   }
 
   if (!chunks || chunks.length === 0) {
+    // Distinguish a real "not in the docs" from a broken/empty search.
+    const { count: chunkCount, error: chunkCountError } = await supabase
+      .from("document_chunks")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if (chunkCountError) {
+      return NextResponse.json(
+        { error: "Could not search your documents. Please try again." },
+        { status: 500 }
+      );
+    }
+    if (!chunkCount) {
+      return NextResponse.json(
+        {
+          error:
+            "No searchable text was found in your documents. Re-process the document, then try again.",
+          message:
+            "No searchable text was found in your documents. Re-process the document, then try again.",
+        },
+        { status: 422 }
+      );
+    }
     return NextResponse.json({
       answer: "I could not find this in your documents.",
       sources: [],
