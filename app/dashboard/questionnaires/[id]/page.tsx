@@ -4,6 +4,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import {
+  Badge,
+  EmptyState,
+  ErrorCard,
+  NoticeCard,
+  Skeleton,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  btnSmPrimary,
+  btnSmSecondary,
+  btnSmSuccess,
+  btnSuccess,
+  selectClass,
+} from "@/components/dashboard/ui";
 
 type Questionnaire = {
   id: string;
@@ -41,57 +56,46 @@ type AnswerResult = {
   sources: { file_name: string; excerpt: string }[];
 };
 
-const questionnaireStatusStyles: Record<string, string> = {
-  uploaded: "bg-gray-100 text-gray-700",
-  parsed: "bg-blue-50 text-blue-700",
-  answering: "bg-amber-50 text-amber-700",
-  ready: "bg-green-50 text-green-700",
-  failed: "bg-red-50 text-red-700",
+const questionnaireStatusTones: Record<string, string> = {
+  uploaded: "gray",
+  parsed: "blue",
+  answering: "amber",
+  ready: "green",
+  failed: "red",
 };
 
-const confidenceStyles: Record<string, string> = {
-  high: "bg-green-50 text-green-700",
-  medium: "bg-amber-50 text-amber-700",
-  low: "bg-orange-50 text-orange-700",
-  none: "bg-gray-100 text-gray-600",
+const confidenceTones: Record<string, string> = {
+  high: "green",
+  medium: "amber",
+  low: "orange",
+  none: "gray",
 };
 
-const questionStatusStyles: Record<string, string> = {
-  pending: "bg-gray-100 text-gray-600",
-  drafted: "bg-blue-50 text-blue-700",
-  not_found: "bg-gray-100 text-gray-500",
-  failed: "bg-red-50 text-red-700",
-  approved: "bg-green-50 text-green-700",
+const questionStatusTones: Record<string, string> = {
+  pending: "gray",
+  drafted: "blue",
+  not_found: "amber",
+  failed: "red",
+  approved: "green",
 };
-
-function Badge({ label, style }: { label: string; style: string }) {
-  return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${style}`}
-    >
-      {label}
-    </span>
-  );
-}
 
 function StatusBadge({ status }: { status: string | null }) {
   const value = status ?? "";
   if (!value) return null;
+  const label = value
+    .replace("_", " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
   return (
-    <Badge
-      label={value.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-      style={questionStatusStyles[value] ?? "bg-gray-100 text-gray-600"}
-    />
+    <Badge tone={questionStatusTones[value] ?? "gray"}>{label}</Badge>
   );
 }
 
 function ConfidenceBadge({ confidence }: { confidence: string | null }) {
   if (!confidence) return null;
   return (
-    <Badge
-      label={confidence.charAt(0).toUpperCase() + confidence.slice(1)}
-      style={confidenceStyles[confidence] ?? "bg-gray-100 text-gray-600"}
-    />
+    <Badge tone={confidenceTones[confidence] ?? "gray"}>
+      {confidence.charAt(0).toUpperCase() + confidence.slice(1)}
+    </Badge>
   );
 }
 
@@ -550,32 +554,58 @@ export default function QuestionnaireDetailPage() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
-        <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+      <div>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-56" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+        <div className="mt-8 space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="mt-4 h-16 w-full" />
+              <div className="mt-4 flex gap-2">
+                <Skeleton className="h-7 w-16" />
+                <Skeleton className="h-7 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (notFound || !questionnaire) {
     return (
-      <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
-        <p className="text-sm font-medium text-gray-900">
-          Questionnaire not found
-        </p>
-        <Link
-          href="/dashboard/questionnaires"
-          className="mt-4 inline-flex rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700"
-        >
+      <EmptyState
+        title="Questionnaire not found"
+        description="It may have been deleted, or you may not have access to it."
+        icon={
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        }
+      >
+        <Link href="/dashboard/questionnaires" className={`${btnPrimary} mt-5`}>
           Back to Questionnaires
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
   const failedCount = questions.filter((q) => q.status === "failed").length;
   const approvedCount = questions.filter((q) => q.status === "approved").length;
-  const draftedCount = questions.filter((q) => q.status === "drafted").length;
-  const notFoundCount = questions.filter((q) => q.status === "not_found").length;
   const filtered =
     filter === "all"
       ? questions
@@ -583,49 +613,105 @@ export default function QuestionnaireDetailPage() {
           (FILTERS.find((f) => f.key === filter)?.statuses ?? []).includes(q.status)
         );
 
+  const reviewActive = ["parsed", "answering", "ready"].includes(
+    questionnaire.status
+  );
+
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold text-gray-900">
-            {questionnaire.file_name}
-          </h1>
-          <div className="mt-1 flex items-center gap-2">
-            <span
-              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                questionnaireStatusStyles[questionnaire.status] ??
-                "bg-gray-100 text-gray-700"
-              }`}
+      {/* Sticky top bar: back, title, progress, export */}
+      <div className="sticky top-14 z-20 -mx-4 border-b border-gray-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-6 sm:px-6 md:top-0 md:mx-0 md:px-0">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            href="/dashboard/questionnaires"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-50"
+            aria-label="Back to questionnaires"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              aria-hidden="true"
             >
-              {questionnaire.status.charAt(0).toUpperCase() +
-                questionnaire.status.slice(1)}
-            </span>
-            <span className="text-xs text-gray-500">
-              {questionnaire.total_questions} questions
-            </span>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 19.5L8.25 12l7.5-7.5"
+              />
+            </svg>
+          </Link>
+
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
+              {questionnaire.file_name}
+            </h1>
+            <div className="mt-0.5 flex items-center gap-2">
+              <Badge
+                tone={
+                  questionnaireStatusTones[questionnaire.status] ?? "gray"
+                }
+              >
+                {questionnaire.status.charAt(0).toUpperCase() +
+                  questionnaire.status.slice(1)}
+              </Badge>
+              <span className="text-xs text-gray-500">
+                {questionnaire.total_questions} questions
+              </span>
+            </div>
           </div>
+
+          {reviewActive && (
+            <div className="flex w-full items-center gap-3 sm:w-auto">
+              <div className="min-w-0 flex-1 sm:flex-none">
+                <p className="text-xs font-medium text-gray-600">
+                  <span className="font-semibold text-gray-900">
+                    {approvedCount}
+                  </span>{" "}
+                  of {questions.length} approved
+                </p>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 sm:w-32">
+                  <div
+                    className="h-full rounded-full bg-primary-600 transition-all duration-500"
+                    style={{
+                      width: questions.length
+                        ? `${Math.round((approvedCount / questions.length) * 100)}%`
+                        : "0%",
+                    }}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className={`${btnPrimary} shrink-0 px-3.5 py-2 sm:px-4`}
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  />
+                </svg>
+                {exporting ? "Building..." : "Download Excel"}
+              </button>
+            </div>
+          )}
         </div>
-        <Link
-          href="/dashboard/questionnaires"
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Back
-        </Link>
       </div>
 
-      {notice && (
-        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          {notice}
-        </div>
-      )}
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {error}
-        </div>
-      )}
+      <div className="mt-5">
+        {notice && <NoticeCard>{notice}</NoticeCard>}
+        {error && <ErrorCard className="mt-3">{error}</ErrorCard>}
+      </div>
 
       {/* Step A — column picker */}
       {questionnaire.status === "uploaded" && (
@@ -638,16 +724,20 @@ export default function QuestionnaireDetailPage() {
           </p>
 
           {previewLoading ? (
-            <div className="py-10 text-center">
-              <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2 rounded-xl border border-gray-200 p-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-4 w-full" />
+                ))}
+              </div>
             </div>
           ) : previewError ? (
-            <div
-              role="alert"
-              className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
-              {previewError}
-            </div>
+            <ErrorCard className="mt-4">{previewError}</ErrorCard>
           ) : preview ? (
             <>
               <div className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -662,7 +752,7 @@ export default function QuestionnaireDetailPage() {
                     id="sheet"
                     value={selectedSheet}
                     onChange={(e) => loadPreview(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={selectClass}
                   >
                     {preview.sheets.map((name) => (
                       <option key={name} value={name}>
@@ -682,7 +772,7 @@ export default function QuestionnaireDetailPage() {
                     id="column"
                     value={selectedCol}
                     onChange={(e) => setSelectedCol(Number(e.target.value))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={selectClass}
                   >
                     {(preview.preview_rows[0] ?? []).map((header, i) => (
                       <option key={i} value={i}>
@@ -708,7 +798,7 @@ export default function QuestionnaireDetailPage() {
                     onChange={(e) =>
                       setHeaderRows(Math.max(0, Number(e.target.value)))
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={selectClass}
                   />
                 </div>
               </div>
@@ -743,7 +833,7 @@ export default function QuestionnaireDetailPage() {
               <button
                 onClick={handleConfirmColumns}
                 disabled={confirming}
-                className="mt-4 w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60 sm:w-auto"
+                className={`${btnPrimary} mt-4 w-full sm:w-auto`}
               >
                 {confirming ? "Extracting questions..." : "Confirm and extract questions"}
               </button>
@@ -754,17 +844,40 @@ export default function QuestionnaireDetailPage() {
 
       {/* Failed state */}
       {questionnaire.status === "failed" && (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-red-700">
-            {questionnaire.error_message ??
-              "Something went wrong while processing this questionnaire."}
-          </p>
-          <button
-            onClick={reopenColumnPicker}
-            className="mt-4 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700"
-          >
-            Re-open column picker
-          </button>
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-red-600 shadow-sm">
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.8}
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-red-800">
+                This questionnaire could not be processed
+              </p>
+              <p className="mt-1 text-sm text-red-700">
+                {questionnaire.error_message ??
+                  "Something went wrong while processing this questionnaire."}
+              </p>
+              <button
+                onClick={reopenColumnPicker}
+                className={`${btnPrimary} mt-4`}
+              >
+                Re-open column picker
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -772,27 +885,31 @@ export default function QuestionnaireDetailPage() {
       {["parsed", "answering", "ready"].includes(questionnaire.status) && (
         <div className="mt-6">
           {hasReadyDocs === false ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
-              <p className="text-sm font-medium text-gray-900">
-                No processed documents yet
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                Trustloop answers from your own security documents. Upload and
-                process at least one document first.
-              </p>
-              <Link
-                href="/dashboard/documents"
-                className="mt-4 inline-flex rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700"
-              >
+            <EmptyState
+              title="No processed documents yet"
+              description="Trustloop answers from your own security documents. Upload and process at least one document first."
+              icon={
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                />
+              }
+            >
+              <Link href="/dashboard/documents" className={btnPrimary}>
                 Go to Documents
               </Link>
-            </div>
+            </EmptyState>
           ) : (
             <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
               {generating ? (
                 <div>
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-600" />
+                      </span>
                       {progress
                         ? `${progress.done} of ${progress.total} done`
                         : "Working..."}
@@ -801,14 +918,14 @@ export default function QuestionnaireDetailPage() {
                       onClick={() => {
                         stopRef.current = true;
                       }}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      className={btnSmSecondary}
                     >
                       Stop
                     </button>
                   </div>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className="h-full rounded-full bg-primary-600 transition-all"
+                      className="h-full rounded-full bg-primary-600 transition-all duration-300"
                       style={{
                         width: progress
                           ? `${Math.round((progress.done / progress.total) * 100)}%`
@@ -821,14 +938,14 @@ export default function QuestionnaireDetailPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <button
                     onClick={handleGenerateAnswers}
-                    className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
+                    className={btnPrimary}
                   >
                     Generate answers
                   </button>
                   {failedCount > 0 && (
                     <button
                       onClick={handleRetryFailed}
-                      className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      className={btnDanger}
                     >
                       Retry failed ({failedCount})
                     </button>
@@ -842,68 +959,22 @@ export default function QuestionnaireDetailPage() {
             </div>
           )}
 
-          {/* Review progress summary */}
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Review progress
-              </h2>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
-                <span>
-                  Total <span className="font-semibold text-gray-900">{questions.length}</span>
-                </span>
-                <span>
-                  Approved <span className="font-semibold text-green-700">{approvedCount}</span>
-                </span>
-                <span>
-                  Drafted <span className="font-semibold text-blue-700">{draftedCount}</span>
-                </span>
-                <span>
-                  Not found <span className="font-semibold text-gray-500">{notFoundCount}</span>
-                </span>
-                <span>
-                  Failed <span className="font-semibold text-red-600">{failedCount}</span>
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-              <div
-                className="h-full rounded-full bg-green-600 transition-all"
-                style={{
-                  width: questions.length
-                    ? `${Math.round((approvedCount / questions.length) * 100)}%`
-                    : "0%",
-                }}
+          {/* Export options */}
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6">
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={includeDrafts}
+                onChange={(e) => setIncludeDrafts(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
               />
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              {approvedCount} of {questions.length} approved
-            </p>
-          </div>
-
-          {/* Export */}
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={includeDrafts}
-                  onChange={(e) => setIncludeDrafts(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                Include drafts (marked as DRAFT)
-              </label>
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
-              >
-                {exporting ? "Building Excel..." : "Download Excel"}
-              </button>
-            </div>
+              Include drafts in the export (marked as DRAFT)
+            </label>
             <p className="mt-2 text-xs text-gray-500">
               By default only approved answers are exported into the original
-              file.
+              file. Use{" "}
+              <span className="font-medium text-gray-700">Download Excel</span>{" "}
+              in the top bar to export.
             </p>
           </div>
 
@@ -917,10 +988,10 @@ export default function QuestionnaireDetailPage() {
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium ${
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ${
                     filter === f.key
-                      ? "bg-primary-600 text-white"
-                      : "border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                      ? "bg-primary-600 text-white shadow-sm"
+                      : "border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50"
                   }`}
                 >
                   {f.label} ({count})
@@ -935,7 +1006,7 @@ export default function QuestionnaireDetailPage() {
               <button
                 onClick={() => setShowApproveAll(true)}
                 disabled={generating}
-                className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
+                className={btnSuccess}
               >
                 Approve all drafted ({draftedWithAnswers.length})
               </button>
@@ -943,44 +1014,49 @@ export default function QuestionnaireDetailPage() {
           )}
 
           {/* Questions list */}
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-4 flex flex-col gap-4">
             {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                <p className="text-sm text-gray-500">
-                  No questions match this filter.
-                </p>
-              </div>
+              <EmptyState
+                title="No questions match this filter"
+                description="Try a different filter to see more answers."
+                icon={
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"
+                  />
+                }
+              />
             ) : (
               filtered.map((q) => (
                 <div
                   key={q.id}
-                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
+                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-colors duration-150 hover:border-gray-300 sm:p-5"
                 >
+                  {/* Question + badges */}
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 flex-1 text-sm font-medium text-gray-900">
-                      <span className="mr-2 text-gray-400">#{q.row_number}</span>
+                    <p className="min-w-0 flex-1 text-sm font-semibold leading-6 text-gray-900">
+                      <span className="mr-2 inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 align-middle text-[11px] font-medium text-gray-500">
+                        #{q.row_number}
+                      </span>
                       {q.question_text}
                     </p>
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      {q.edited_by_user && (
-                        <Badge
-                          label="Edited"
-                          style="bg-primary-50 text-primary-700"
-                        />
-                      )}
+                      {q.edited_by_user && <Badge tone="primary">Edited</Badge>}
                       <ConfidenceBadge confidence={q.confidence} />
                       <StatusBadge status={q.status} />
                     </div>
                   </div>
 
+                  {/* Answer */}
                   {editingId === q.id ? (
-                    <div className="mt-2">
+                    <div className="mt-3">
                       <textarea
                         value={editText}
                         maxLength={MAX_EDIT_CHARS}
                         rows={4}
                         onChange={(e) => setEditText(e.target.value)}
-                        className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        className="w-full resize-none rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                       />
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-xs text-gray-400">
@@ -990,100 +1066,155 @@ export default function QuestionnaireDetailPage() {
                           <button
                             onClick={cancelEdit}
                             disabled={savingEdit}
-                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                            className={btnSmSecondary}
                           >
                             Cancel
                           </button>
                           <button
                             onClick={() => handleSaveEdit(q)}
                             disabled={savingEdit}
-                            className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+                            className={btnSmPrimary}
                           >
                             {savingEdit ? "Saving..." : "Save"}
                           </button>
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    q.answer_text && (
-                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                  ) : q.answer_text ? (
+                    <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3.5">
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-gray-800">
                         {q.answer_text}
                       </p>
-                    )
-                  )}
+                    </div>
+                  ) : q.status === "pending" ? (
+                    <p className="mt-3 text-sm italic text-gray-400">
+                      No answer yet — generate answers to draft one.
+                    </p>
+                  ) : null}
 
                   {q.status === "failed" && editingId !== q.id && (
-                    <p className="mt-2 text-xs text-red-600">
+                    <p className="mt-2 text-xs font-medium text-red-600">
                       Answer generation failed. Use Retry, or write an answer
                       manually with Edit.
                     </p>
                   )}
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {editingId === q.id ? null : (
-                      <>
-                        {q.status !== "failed" && (
-                          <button
-                            onClick={() => startEdit(q)}
-                            disabled={generating || savingEdit}
-                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                  {/* Sources expander, directly under the answer */}
+                  {editingId !== q.id && q.sources.length > 0 && (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleSources(q.id)}
+                        aria-expanded={expanded.has(q.id)}
+                        className="flex w-full items-center justify-between gap-2 rounded-lg border-t border-gray-100 pt-3 text-left text-xs font-semibold text-primary-700 transition-colors hover:text-primary-800"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <svg
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            aria-hidden="true"
                           >
-                            {q.answer_text ? "Edit" : "Write answer"}
-                          </button>
-                        )}
-                        {q.answer_text && q.status !== "approved" && (
-                          <button
-                            onClick={() => handleApprove(q)}
-                            disabled={generating || savingEdit}
-                            className="rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 disabled:opacity-60"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {q.status === "approved" && (
-                          <button
-                            onClick={() => handleUnapprove(q)}
-                            disabled={generating || savingEdit}
-                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                          >
-                            Unapprove
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleRegenerate(q.id)}
-                          disabled={generating || savingEdit}
-                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                            />
+                          </svg>
+                          Sources ({q.sources.length})
+                        </span>
+                        <svg
+                          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+                            expanded.has(q.id) ? "rotate-180" : ""
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          aria-hidden="true"
                         >
-                          Regenerate
-                        </button>
-                        {q.sources.length > 0 && (
-                          <button
-                            onClick={() => toggleSources(q.id)}
-                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                          >
-                            {expanded.has(q.id)
-                              ? "Hide sources"
-                              : `Sources (${q.sources.length})`}
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  {expanded.has(q.id) && q.sources.length > 0 && (
-                    <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3">
-                      {q.sources.map((source, i) => (
-                        <div key={i}>
-                          <p className="text-xs font-medium text-primary-700">
-                            {source.file_name}
-                          </p>
-                          <p className="mt-0.5 text-xs leading-5 text-gray-600">
-                            {source.excerpt.length > 400
-                              ? `${source.excerpt.slice(0, 400)}...`
-                              : source.excerpt}
-                          </p>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                      </button>
+                      {expanded.has(q.id) && (
+                        <div className="mt-2 space-y-2">
+                          {q.sources.map((source, i) => (
+                            <div
+                              key={i}
+                              className="rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-3"
+                            >
+                              <p className="flex items-center gap-1.5 text-xs font-semibold text-primary-700">
+                                <svg
+                                  className="h-3 w-3 shrink-0"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth={2}
+                                  stroke="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                                  />
+                                </svg>
+                                {source.file_name}
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-gray-600">
+                                {source.excerpt.length > 400
+                                  ? `${source.excerpt.slice(0, 400)}...`
+                                  : source.excerpt}
+                              </p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  {editingId !== q.id && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {q.status !== "failed" && (
+                        <button
+                          onClick={() => startEdit(q)}
+                          disabled={generating || savingEdit}
+                          className={btnSmSecondary}
+                        >
+                          {q.answer_text ? "Edit" : "Write answer"}
+                        </button>
+                      )}
+                      {q.answer_text && q.status !== "approved" && (
+                        <button
+                          onClick={() => handleApprove(q)}
+                          disabled={generating || savingEdit}
+                          className={btnSmSuccess}
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {q.status === "approved" && (
+                        <button
+                          onClick={() => handleUnapprove(q)}
+                          disabled={generating || savingEdit}
+                          className={btnSmSecondary}
+                        >
+                          Unapprove
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRegenerate(q.id)}
+                        disabled={generating || savingEdit}
+                        className={btnSmSecondary}
+                      >
+                        Regenerate
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1126,14 +1257,14 @@ export default function QuestionnaireDetailPage() {
               <button
                 onClick={() => setShowApproveAll(false)}
                 disabled={approvingAll}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className={btnSecondary}
               >
                 Cancel
               </button>
               <button
                 onClick={handleApproveAll}
                 disabled={approvingAll}
-                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-60"
               >
                 {approvingAll ? "Approving..." : "Approve all"}
               </button>

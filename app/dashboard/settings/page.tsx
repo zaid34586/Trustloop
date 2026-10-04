@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  ErrorCard,
+  PageHeader,
+  Skeleton,
+  SuccessCard,
+  btnPrimary,
+  inputClass,
+  inputDisabledClass,
+} from "@/components/dashboard/ui";
 
 type SaveState = { type: "success" | "error"; message: string } | null;
 
@@ -152,42 +161,53 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        Manage your profile and account password.
-      </p>
+      <PageHeader
+        title="Settings"
+        subtitle="Manage your profile and account password."
+      />
 
       {/* Profile */}
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-base font-semibold text-gray-900">Profile</h2>
 
         {loadingProfile ? (
-          <div className="mt-6">
-            <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div>
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="mt-2 h-10 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="mt-2 h-10 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="mt-2 h-10 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="mt-2 h-10 w-full" />
+            </div>
+            <div className="sm:col-span-2">
+              <Skeleton className="h-10 w-32" />
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSaveProfile} className="mt-4">
             {profileLoadError && (
-              <div
-                role="alert"
-                className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-              >
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 {profileLoadError}
               </div>
             )}
 
-            {profileState && (
-              <div
-                role={profileState.type === "error" ? "alert" : "status"}
-                className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
-                  profileState.type === "error"
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : "border-green-200 bg-green-50 text-green-700"
-                }`}
-              >
-                {profileState.message}
-              </div>
-            )}
+            {profileState &&
+              (profileState.type === "error" ? (
+                <ErrorCard className="mb-4">{profileState.message}</ErrorCard>
+              ) : (
+                <SuccessCard className="mb-4">
+                  {profileState.message}
+                </SuccessCard>
+              ))}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -203,7 +223,7 @@ export default function SettingsPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   maxLength={120}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  className={inputClass}
                   placeholder="Jane Doe"
                 />
               </div>
@@ -221,7 +241,7 @@ export default function SettingsPage() {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   maxLength={120}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  className={inputClass}
                   placeholder="Acme Security Ltd."
                 />
               </div>
@@ -238,7 +258,7 @@ export default function SettingsPage() {
                   type="email"
                   value={email}
                   readOnly
-                  className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
+                  className={inputDisabledClass}
                   placeholder="you@company.com"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -263,7 +283,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={savingProfile || loadingProfile}
-                className="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className={btnPrimary}
               >
                 {savingProfile ? "Saving..." : "Save profile"}
               </button>
@@ -279,18 +299,14 @@ export default function SettingsPage() {
         </h2>
 
         <form onSubmit={handleChangePassword} className="mt-4">
-          {passwordState && (
-            <div
-              role={passwordState.type === "error" ? "alert" : "status"}
-              className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
-                passwordState.type === "error"
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : "border-green-200 bg-green-50 text-green-700"
-              }`}
-            >
-              {passwordState.message}
-            </div>
-          )}
+          {passwordState &&
+            (passwordState.type === "error" ? (
+              <ErrorCard className="mb-4">{passwordState.message}</ErrorCard>
+            ) : (
+              <SuccessCard className="mb-4">
+                {passwordState.message}
+              </SuccessCard>
+            ))}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -307,7 +323,7 @@ export default function SettingsPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className={inputClass}
                 placeholder="At least 8 characters"
               />
             </div>
@@ -326,7 +342,7 @@ export default function SettingsPage() {
                 minLength={8}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className={inputClass}
                 placeholder="Repeat the new password"
               />
             </div>
@@ -336,7 +352,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={changingPassword}
-              className="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className={btnPrimary}
             >
               {changingPassword ? "Updating..." : "Change password"}
             </button>

@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import {
+  CardSkeleton,
+  EmptyState,
+  ErrorCard,
+  PageHeader,
+  Skeleton,
+  btnPrimary,
+} from "@/components/dashboard/ui";
 
 type Source = {
   file_name: string;
@@ -70,30 +78,32 @@ export default function AskPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Ask</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        Ask a question about your uploaded security documents.
-      </p>
+      <PageHeader
+        title="Ask"
+        subtitle="Ask a question about your uploaded security documents."
+      />
 
       {checkingDocs ? (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-10 text-center">
-          <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+        <div className="mt-6">
+          <CardSkeleton rows={4} />
         </div>
       ) : !hasReadyDocs ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
-          <p className="text-sm font-medium text-gray-900">
-            No processed documents yet
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            Trustloop can only answer from your own files. Upload a document
-            first and wait until its status is Ready.
-          </p>
-          <Link
-            href="/dashboard/documents"
-            className="mt-4 inline-flex rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700"
+        <div className="mt-6">
+          <EmptyState
+            title="No processed documents yet"
+            description="Trustloop can only answer from your own files. Upload a document first and wait until its status is Ready."
+            icon={
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+              />
+            }
           >
-            Go to Documents
-          </Link>
+            <Link href="/dashboard/documents" className={btnPrimary}>
+              Go to Documents
+            </Link>
+          </EmptyState>
         </div>
       ) : (
         <>
@@ -114,7 +124,7 @@ export default function AskPage() {
               rows={4}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="e.g. Do we have a documented incident response plan?"
-              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-full resize-none rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
             <div className="mt-3 flex items-center justify-between">
               <span className="text-xs text-gray-400">
@@ -123,39 +133,58 @@ export default function AskPage() {
               <button
                 type="submit"
                 disabled={loading || !question.trim()}
-                className="rounded-lg bg-primary-600 px-6 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${btnPrimary} px-6`}
               >
                 {loading ? "Searching..." : "Ask"}
               </button>
             </div>
           </form>
 
-          {error && (
-            <div
-              role="alert"
-              className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
-              {error}
-            </div>
-          )}
+          {error && <ErrorCard className="mt-4">{error}</ErrorCard>}
 
           {loading && (
             <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
-                <p className="text-sm text-gray-600">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
+                </span>
+                <p className="text-sm font-medium text-gray-700">
                   Searching your documents and drafting an answer...
                 </p>
+              </div>
+              <div className="mt-4 space-y-2.5">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
             </div>
           )}
 
           {answer && !loading && (
             <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Answer
-              </h2>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-900">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.8}
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
+                    />
+                  </svg>
+                </span>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  Answer
+                </h2>
+              </div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
                 {answer}
               </p>
               <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
@@ -175,10 +204,24 @@ export default function AskPage() {
                     key={index}
                     className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
                   >
-                    <p className="text-sm font-medium text-primary-700">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-primary-700">
+                      <svg
+                        className="h-4 w-4 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.8}
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                        />
+                      </svg>
                       {source.file_name}
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-gray-600">
+                    <p className="mt-1.5 whitespace-pre-wrap text-xs leading-5 text-gray-600">
                       {source.content.length > 500
                         ? `${source.content.slice(0, 500)}...`
                         : source.content}

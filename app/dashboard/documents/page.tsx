@@ -2,6 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  Badge,
+  EmptyState,
+  ErrorCard,
+  ListSkeleton,
+  PageHeader,
+  btnSecondary,
+  btnSmDanger,
+  btnSmOutlinePrimary,
+  btnSmSecondary,
+} from "@/components/dashboard/ui";
 
 type Document = {
   id: string;
@@ -14,24 +25,17 @@ type Document = {
   created_at: string;
 };
 
-const statusStyles: Record<string, string> = {
-  uploaded: "bg-gray-100 text-gray-700",
-  processing: "bg-amber-50 text-amber-700",
-  ready: "bg-green-50 text-green-700",
-  failed: "bg-red-50 text-red-700",
+const statusTones: Record<string, string> = {
+  uploaded: "gray",
+  processing: "amber",
+  ready: "green",
+  failed: "red",
+  parsed: "blue",
 };
 
 function StatusBadge({ status }: { status: string }) {
   const label = status.charAt(0).toUpperCase() + status.slice(1);
-  return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        statusStyles[status] ?? "bg-gray-100 text-gray-700"
-      }`}
-    >
-      {label}
-    </span>
-  );
+  return <Badge tone={statusTones[status] ?? "gray"}>{label}</Badge>;
 }
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -283,11 +287,10 @@ export default function DocumentsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        Upload your security documents so Trustloop can draft answers from
-        them.
-      </p>
+      <PageHeader
+        title="Documents"
+        subtitle="Upload your security documents so Trustloop can draft answers from them."
+      />
 
       {/* Upload area */}
       <div
@@ -331,11 +334,15 @@ export default function DocumentsPage() {
           }}
         />
         {uploading ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+          <div className="flex flex-col items-center gap-2.5">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
+            </span>
             <p className="text-sm font-medium text-gray-900">
               Uploading {uploadingName ? `"${uploadingName}"` : "..."}
             </p>
+            <p className="text-xs text-gray-500">Please keep this tab open</p>
           </div>
         ) : (
           <>
@@ -365,31 +372,24 @@ export default function DocumentsPage() {
         )}
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {error}
-        </div>
-      )}
+      {error && <ErrorCard className="mt-4">{error}</ErrorCard>}
 
       {/* Document list */}
       <div className="mt-8">
         {loadingList ? (
-          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
-            <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
-          </div>
+          <ListSkeleton rows={5} />
         ) : documents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
-            <p className="text-sm font-medium text-gray-900">
-              No documents uploaded yet
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Upload your security policies and documentation above to get
-              started.
-            </p>
-          </div>
+          <EmptyState
+            title="No documents uploaded yet"
+            description="Upload your security policies and documentation above to get started."
+            icon={
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+              />
+            }
+          />
         ) : (
           <>
             {/* Desktop table */}
@@ -436,7 +436,7 @@ export default function DocumentsPage() {
                             <button
                               onClick={() => handleRetry(doc)}
                               disabled={busyAction === doc.id}
-                              className="rounded-lg border border-primary-200 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-60"
+                              className={btnSmOutlinePrimary}
                             >
                               {busyAction === doc.id ? "..." : "Retry"}
                             </button>
@@ -444,7 +444,7 @@ export default function DocumentsPage() {
                           <button
                             onClick={() => handleDownload(doc)}
                             disabled={busyAction === doc.id}
-                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                            className={btnSmSecondary}
                           >
                             {busyAction === doc.id ? "..." : "Download"}
                           </button>
@@ -454,7 +454,7 @@ export default function DocumentsPage() {
                               setDeleteError(null);
                             }}
                             disabled={busyAction === doc.id}
-                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+                            className={btnSmDanger}
                           >
                             Delete
                           </button>
@@ -497,7 +497,7 @@ export default function DocumentsPage() {
                       <button
                         onClick={() => handleRetry(doc)}
                         disabled={busyAction === doc.id}
-                        className="flex-1 rounded-lg border border-primary-200 px-3 py-2 text-xs font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-60"
+                        className={`${btnSmOutlinePrimary} flex-1`}
                       >
                         Retry
                       </button>
@@ -505,7 +505,7 @@ export default function DocumentsPage() {
                     <button
                       onClick={() => handleDownload(doc)}
                       disabled={busyAction === doc.id}
-                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                      className={`${btnSmSecondary} flex-1`}
                     >
                       Download
                     </button>
@@ -515,7 +515,7 @@ export default function DocumentsPage() {
                         setDeleteError(null);
                       }}
                       disabled={busyAction === doc.id}
-                      className="flex-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+                      className={`${btnSmDanger} flex-1`}
                     >
                       Delete
                     </button>
@@ -550,25 +550,18 @@ export default function DocumentsPage() {
               </span>{" "}
               from your storage. This action cannot be undone.
             </p>
-            {deleteError && (
-              <div
-                role="alert"
-                className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-              >
-                {deleteError}
-              </div>
-            )}
+            {deleteError && <ErrorCard className="mt-4">{deleteError}</ErrorCard>}
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className={btnSecondary}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={busyAction === deleteTarget.id}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60"
               >
                 {busyAction === deleteTarget.id ? "Deleting..." : "Delete"}
               </button>
