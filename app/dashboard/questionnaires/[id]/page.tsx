@@ -13,6 +13,7 @@ import {
   btnDanger,
   btnPrimary,
   btnSecondary,
+  btnSmOutlinePrimary,
   btnSmPrimary,
   btnSmSecondary,
   btnSmSuccess,
@@ -138,6 +139,7 @@ export default function QuestionnaireDetailPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [hasReadyDocs, setHasReadyDocs] = useState<boolean | null>(null);
   const stopRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Review state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -145,10 +147,23 @@ export default function QuestionnaireDetailPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [showApproveAll, setShowApproveAll] = useState(false);
   const [approvingAll, setApprovingAll] = useState(false);
+  // Error for ONE question — shown inside that question's card only.
+  const [itemError, setItemError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
 
   // Export state
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Every new action starts with a clean slate: both global banners
+  // (blue info + red error) are cleared, and they only reappear if
+  // that action itself fails or has something to report.
+  function clearBanners() {
+    setError(null);
+    setNotice(null);
+  }
 
   const loadPreview = useCallback(
     async (sheetName?: string) => {
@@ -261,8 +276,7 @@ export default function QuestionnaireDetailPage() {
 
   async function handleConfirmColumns() {
     setConfirming(true);
-    setError(null);
-    setNotice(null);
+    clearBanners();
 
     try {
       const response = await fetch("/api/questionnaires/confirm", {
@@ -311,12 +325,26 @@ export default function QuestionnaireDetailPage() {
     );
   }
 
-  async function runGeneration(ids: string[]) {
+  async function runGeneration(ids: string[], itemId?: string) {
     if (ids.length === 0) return;
+    // A new action clears every banner: global info, global error and
+    // any per-item error. They only reappear if this action fails.
+    clearBanners();
+    setItemError(null);
     setGenerating(true);
-    setError(null);
     setProgress({ done: 0, total: ids.length });
     stopRef.current = false;
+
+    // Errors from a single-item action (Regenerate / Retry) stay on
+    // that item; bulk actions report through the global banner.
+    const reportError = (message: string) => {
+      if (itemId) setItemError({ id: itemId, message });
+      else setError(message);
+    };
+
+    // One controller per run so Stop aborts the in-flight request too.
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     let done = 0;
     for (let i = 0; i < ids.length; i += 3) {
@@ -327,30 +355,40 @@ export default function QuestionnaireDetailPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question_ids: batch }),
+          signal: controller.signal,
         });
         const data = await response.json().catch(() => null);
         if (!response.ok) {
-          setError(data?.error ?? "Answer generation failed. Please try again.");
+          reportError(data?.error ?? "Answer generation failed. Please try again.");
           break;
         }
         applyResults(data.results ?? []);
         if (data?.error) {
-          setError(data.error);
+          reportError(data.error);
           break;
         }
-      } catch {
-        setError("Could not reach the server. Please try again.");
+      } catch (err) {
+        // Stopped by the user — not an error.
+        if (
+          stopRef.current ||
+          (err instanceof DOMException && err.name === "AbortError")
+        ) {
+          break;
+        }
+        reportError("Could not reach the server. Please try again.");
         break;
       }
       done += batch.length;
       setProgress({ done, total: ids.length });
     }
 
+    abortRef.current = null;
     setGenerating(false);
     await loadAll();
   }
 
   function handleGenerateAnswers() {
+    clearBanners();
     const ids = questions
       .filter((q) => q.status === "pending" || q.status === "failed")
       .map((q) => q.id);
@@ -362,14 +400,16 @@ export default function QuestionnaireDetailPage() {
   }
 
   function handleRetryFailed() {
+    clearBanners();
     const ids = questions
       .filter((q) => q.status === "failed")
       .map((q) => q.id);
+    if (ids.length === 0) return;
     runGeneration(ids);
   }
 
   function handleRegenerate(id: string) {
-    runGeneration([id]);
+    runGeneration([id], id);
   }
 
   function toggleSources(id: string) {
@@ -395,7 +435,8 @@ export default function QuestionnaireDetailPage() {
   function startEdit(q: Question) {
     setEditingId(q.id);
     setEditText(q.answer_text ?? "");
-    setError(null);
+    clearBanners();
+    setItemError(null);
   }
 
   function cancelEdit() {
@@ -406,11 +447,16 @@ export default function QuestionnaireDetailPage() {
   async function handleSaveEdit(q: Question) {
     const text = editText.trim();
     if (!text) {
-      setError("The answer cannot be empty. Use Cancel to discard the edit.");
+      clearBanners();
+      setItemError({
+        id: q.id,
+        message: "The answer cannot be empty. Use Cancel to discard the edit.",
+      });
       return;
     }
+    clearBanners();
+    setItemError(null);
     setSavingEdit(true);
-    setError(null);
 
     // Optimistic update.
     const manual = q.status === "not_found" || q.status === "failed";
@@ -435,17 +481,22 @@ export default function QuestionnaireDetailPage() {
 
     if (updateError) {
       await loadAll();
-      setError(
-        wasApproved
+      setItemError({
+        id: q.id,
+        message: wasApproved
           ? "Could not save the edit. The answer is back to its approved state."
-          : "Could not save the edit. Please try again."
-      );
+          : "Could not save the edit. Please try again.",
+      });
     }
     setSavingEdit(false);
   }
 
   async function handleApprove(q: Question) {
-    setError(null);
+    // Only drafted answers (AI-drafted or written manually with Edit)
+    // can be approved — never Not found / Failed / Pending.
+    if (q.status !== "drafted" || !q.answer_text) return;
+    clearBanners();
+    setItemError(null);
     const updates = { status: "approved", approved_at: new Date().toISOString() };
     setQuestions((prev) =>
       prev.map((item) => (item.id === q.id ? { ...item, ...updates } : item))
@@ -455,16 +506,21 @@ export default function QuestionnaireDetailPage() {
     const { error: updateError } = await supabase
       .from("questions")
       .update(updates)
-      .eq("id", q.id);
+      .eq("id", q.id)
+      .eq("status", "drafted");
 
     if (updateError) {
       await loadAll();
-      setError("Could not approve the answer. Please try again.");
+      setItemError({
+        id: q.id,
+        message: "Could not approve the answer. Please try again.",
+      });
     }
   }
 
   async function handleUnapprove(q: Question) {
-    setError(null);
+    clearBanners();
+    setItemError(null);
     const updates = { status: "drafted", approved_at: null };
     setQuestions((prev) =>
       prev.map((item) => (item.id === q.id ? { ...item, ...updates } : item))
@@ -478,7 +534,10 @@ export default function QuestionnaireDetailPage() {
 
     if (updateError) {
       await loadAll();
-      setError("Could not unapprove the answer. Please try again.");
+      setItemError({
+        id: q.id,
+        message: "Could not unapprove the answer. Please try again.",
+      });
     }
   }
 
@@ -487,11 +546,18 @@ export default function QuestionnaireDetailPage() {
   );
 
   async function handleApproveAll() {
-    if (draftedWithAnswers.length === 0) return;
+    // Only Drafted items — recomputed here so a stale list can never
+    // approve a Not found / Failed / Pending question.
+    const ids = questions
+      .filter((q) => q.status === "drafted" && q.answer_text)
+      .map((q) => q.id);
+    if (ids.length === 0) {
+      setShowApproveAll(false);
+      return;
+    }
+    clearBanners();
     setApprovingAll(true);
-    setError(null);
 
-    const ids = draftedWithAnswers.map((q) => q.id);
     const updates = { status: "approved", approved_at: new Date().toISOString() };
 
     // Optimistic update.
@@ -504,7 +570,8 @@ export default function QuestionnaireDetailPage() {
     const { error: updateError } = await supabase
       .from("questions")
       .update(updates)
-      .in("id", ids);
+      .in("id", ids)
+      .eq("status", "drafted");
 
     if (updateError) {
       await loadAll();
@@ -516,8 +583,8 @@ export default function QuestionnaireDetailPage() {
   // ---------- Export ----------
 
   async function handleExport() {
+    clearBanners();
     setExporting(true);
-    setError(null);
 
     try {
       const response = await fetch(
@@ -616,6 +683,11 @@ export default function QuestionnaireDetailPage() {
       : questions.filter((q) =>
           (FILTERS.find((f) => f.key === filter)?.statuses ?? []).includes(q.status)
         );
+
+  // Display numbers start at #1 in list order (the real Excel row
+  // number stays in q.row_number and is used for the export).
+  const displayNumbers = new Map<string, number>();
+  questions.forEach((q, index) => displayNumbers.set(q.id, index + 1));
 
   const reviewActive = ["parsed", "answering", "ready"].includes(
     questionnaire.status
@@ -921,6 +993,9 @@ export default function QuestionnaireDetailPage() {
                     <button
                       onClick={() => {
                         stopRef.current = true;
+                        // Abort the in-flight batch too, so Stop takes
+                        // effect immediately instead of after the request.
+                        abortRef.current?.abort();
                       }}
                       className={btnSmSecondary}
                     >
@@ -1041,7 +1116,7 @@ export default function QuestionnaireDetailPage() {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="min-w-0 flex-1 text-sm font-semibold leading-6 text-gray-900">
                       <span className="mr-2 inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 align-middle text-[11px] font-medium text-gray-500">
-                        #{q.row_number}
+                        #{displayNumbers.get(q.id) ?? 1}
                       </span>
                       {q.question_text}
                     </p>
@@ -1101,6 +1176,11 @@ export default function QuestionnaireDetailPage() {
                       Answer generation failed. Use Retry, or write an answer
                       manually with Edit.
                     </p>
+                  )}
+
+                  {/* Error for this item only — never a global banner. */}
+                  {itemError?.id === q.id && (
+                    <ErrorCard className="mt-3">{itemError.message}</ErrorCard>
                   )}
 
                   {/* Sources expander, directly under the answer */}
@@ -1171,9 +1251,7 @@ export default function QuestionnaireDetailPage() {
                                 {source.file_name}
                               </p>
                               <p className="mt-1 text-xs leading-5 text-gray-600">
-                                {source.excerpt.length > 400
-                                  ? `${source.excerpt.slice(0, 400)}...`
-                                  : source.excerpt}
+                                {source.excerpt}
                               </p>
                             </div>
                           ))}
@@ -1185,16 +1263,17 @@ export default function QuestionnaireDetailPage() {
                   {/* Actions */}
                   {editingId !== q.id && (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      {q.status !== "failed" && (
-                        <button
-                          onClick={() => startEdit(q)}
-                          disabled={generating || savingEdit}
-                          className={btnSmSecondary}
-                        >
-                          {q.answer_text ? "Edit" : "Write answer"}
-                        </button>
-                      )}
-                      {q.answer_text && q.status !== "approved" && (
+                      <button
+                        onClick={() => startEdit(q)}
+                        disabled={generating || savingEdit}
+                        className={btnSmSecondary}
+                      >
+                        {q.answer_text ? "Edit" : "Write answer"}
+                      </button>
+                      {/* Approve only for Drafted answers — AI drafts or
+                          manual edits. Not found / Failed / Pending have
+                          no approve action at all. */}
+                      {q.status === "drafted" && q.answer_text && (
                         <button
                           onClick={() => handleApprove(q)}
                           disabled={generating || savingEdit}
@@ -1210,6 +1289,15 @@ export default function QuestionnaireDetailPage() {
                           className={btnSmSecondary}
                         >
                           Unapprove
+                        </button>
+                      )}
+                      {q.status === "failed" && (
+                        <button
+                          onClick={() => handleRegenerate(q.id)}
+                          disabled={generating || savingEdit}
+                          className={btnSmOutlinePrimary}
+                        >
+                          Retry
                         </button>
                       )}
                       <button

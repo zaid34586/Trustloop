@@ -27,9 +27,15 @@ Rules:
 - For yes/no questions start with "Yes." or "No." followed by one short sentence of detail.
 - Keep answers under 80 words.
 - If the answer is not in the excerpts, set found to false.
-- Respond with ONLY this JSON, no other text: {"found": true|false, "answer": "...", "confidence": "high|medium|low"}`;
+- "sources" must list the numbers of the excerpts you actually used for the answer, exactly as they appear in [1], [2], ... Use [] when found is false.
+- Respond with ONLY this JSON, no other text: {"found": true|false, "answer": "...", "confidence": "high|medium|low", "sources": [1, 2]}`;
 
-type AiResult = { found: boolean; answer: string; confidence: string };
+type AiResult = {
+  found: boolean;
+  answer: string;
+  confidence: string;
+  sources: number[];
+};
 
 function parseAiJson(raw: string): AiResult {
   // extractJsonObject strips thinking blocks and code fences, then
@@ -41,7 +47,12 @@ function parseAiJson(raw: string): AiResult {
   const confidence = ["high", "medium", "low"].includes(parsed.confidence)
     ? parsed.confidence
     : "medium";
-  return { found: parsed.found, answer: parsed.answer, confidence };
+  const sources = Array.isArray(parsed.sources)
+    ? parsed.sources.filter(
+        (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 1
+      )
+    : [];
+  return { found: parsed.found, answer: parsed.answer, confidence, sources };
 }
 
 export async function POST(request: Request) {
@@ -206,9 +217,14 @@ export async function POST(request: Request) {
           sources: [],
         });
       } else {
-        const sources = topChunks.map((chunk) => ({
-          file_name: chunk.file_name,
-          excerpt: chunk.content,
+        // Save only the excerpts the AI said it used (structured
+        // "sources" numbers), deduplicated and in the order given.
+        const chosenIndexes = [...new Set(parsed.sources)].filter(
+          (n) => n >= 1 && n <= topChunks.length
+        );
+        const sources = chosenIndexes.map((n) => ({
+          file_name: topChunks[n - 1].file_name,
+          excerpt: topChunks[n - 1].content,
         }));
 
         const { error: updateError } = await supabase

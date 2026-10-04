@@ -154,14 +154,49 @@ export function rankChunks(
 }
 
 /**
+ * Drops duplicate / heavily overlapping excerpts: a chunk is skipped
+ * when >= 85% of its tokens also appear in an already-kept chunk
+ * (exact copies and near-copies). Adjacent chunks that merely share
+ * the ~150-char sliding overlap (~15% of their tokens) are kept.
+ */
+export function dedupeOverlapping(chunks: RankedChunk[]): RankedChunk[] {
+  const kept: RankedChunk[] = [];
+  const keptTokens: Set<string>[] = [];
+  for (const chunk of chunks) {
+    const tokens = new Set(tokenize(chunk.content));
+    let duplicate = false;
+    for (const other of keptTokens) {
+      const small = tokens.size <= other.size ? tokens : other;
+      const big = tokens.size <= other.size ? other : tokens;
+      let shared = 0;
+      for (const token of small) {
+        if (big.has(token)) shared++;
+      }
+      if (small.size > 0 && shared / small.size >= 0.85) {
+        duplicate = true;
+        break;
+      }
+    }
+    if (!duplicate) {
+      kept.push(chunk);
+      keptTokens.push(tokens);
+    }
+  }
+  return kept;
+}
+
+/**
  * Chunks to send to the AI for `query`:
  * - 0 chunks -> [] (caller must return "Upload and process a document first")
  * - <= ALL_CHUNKS_LIMIT chunks -> every chunk, scored but uncut
  * - otherwise -> the TOP_CHUNKS best keyword matches
- * Never returns empty when chunks exist, so the AI is always called.
+ * Duplicate/overlapping excerpts are removed before slicing so they
+ * never occupy a slot. Never returns empty when chunks exist, so the
+ * AI is always called.
  */
 export function selectChunks(chunks: UserChunk[], query: string): RankedChunk[] {
   if (chunks.length === 0) return [];
-  if (chunks.length <= ALL_CHUNKS_LIMIT) return rankChunks(chunks, query);
-  return rankChunks(chunks, query, TOP_CHUNKS);
+  const deduped = dedupeOverlapping(rankChunks(chunks, query));
+  if (chunks.length <= ALL_CHUNKS_LIMIT) return deduped;
+  return deduped.slice(0, TOP_CHUNKS);
 }

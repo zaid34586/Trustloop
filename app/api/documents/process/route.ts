@@ -7,12 +7,42 @@ const OVERLAP_CHARS = 150;
 const NO_TEXT_MESSAGE =
   "No readable text found. Scanned PDFs are not supported yet.";
 
+/**
+ * Cut `text` at the last word boundary at or before `limit` so pieces
+ * never start or end in the middle of a word. Falls back to the raw
+ * cut only when there is no usable space (a single giant token).
+ */
+function cutAtWordBoundary(text: string, limit: number): number {
+  if (limit >= text.length) return text.length;
+  const slice = text.slice(0, limit);
+  const lastSpace = slice.lastIndexOf(" ");
+  // Keep at least ~40% of the window to avoid tiny pieces.
+  if (lastSpace > slice.length * 0.4) return lastSpace;
+  return limit;
+}
+
+/**
+ * Overlap tail for the next chunk: the last OVERLAP_CHARS of the
+ * current chunk, trimmed so it starts on a word boundary.
+ */
+function overlapTail(current: string): string {
+  if (current.length <= OVERLAP_CHARS) return current;
+  let tail = current.slice(-OVERLAP_CHARS);
+  const firstSpace = tail.indexOf(" ");
+  if (firstSpace >= 0 && firstSpace < tail.length - 1) {
+    tail = tail.slice(firstSpace + 1);
+  }
+  return tail;
+}
+
 function chunkText(text: string): string[] {
   const normalized = text
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+  // Split on paragraph boundaries, then on sentence boundaries inside
+  // oversized paragraphs, so units never begin or end mid-word.
   const units: string[] = [];
   for (const paragraph of normalized.split(/\n{2,}/)) {
     const p = paragraph.trim();
@@ -36,7 +66,7 @@ function chunkText(text: string): string[] {
     if (buffer.trim()) units.push(buffer.trim());
   }
 
-  // Pack units into chunks with overlap between consecutive chunks.
+  // Pack units into chunks with word-aligned overlap between them.
   const chunks: string[] = [];
   let current = "";
   for (const unit of units) {
@@ -48,21 +78,36 @@ function chunkText(text: string): string[] {
       current += "\n" + unit;
     } else {
       chunks.push(current);
-      const tail = current.slice(-OVERLAP_CHARS);
-      current = tail + "\n" + unit;
+      // Start the next chunk with (at most) ~150 chars of the
+      // previous one, trimmed to a word boundary and to whatever
+      // still fits so chunks stay within ~800-1000 chars.
+      let tail = overlapTail(current);
+      const maxTail = MAX_CHUNK_CHARS - unit.length - 1;
+      if (tail.length > maxTail) {
+        tail = tail.slice(0, Math.max(0, maxTail));
+        const lastSpace = tail.lastIndexOf(" ");
+        if (lastSpace > tail.length * 0.4) tail = tail.slice(0, lastSpace);
+      }
+      current = tail ? `${tail}\n${unit}` : unit;
     }
   }
   if (current.trim()) chunks.push(current);
 
-  // Hard-split anything that is still oversized.
+  // Hard-split anything that is still oversized, always at a word
+  // boundary (only a token longer than the window is cut raw).
   const result: string[] = [];
   for (const chunk of chunks) {
     if (chunk.length <= MAX_CHUNK_CHARS) {
       result.push(chunk);
       continue;
     }
-    for (let i = 0; i < chunk.length; i += TARGET_CHUNK_CHARS) {
-      result.push(chunk.slice(i, i + TARGET_CHUNK_CHARS));
+    let pos = 0;
+    while (pos < chunk.length) {
+      const end = pos + cutAtWordBoundary(chunk.slice(pos), TARGET_CHUNK_CHARS);
+      const piece = chunk.slice(pos, end).trim();
+      if (piece) result.push(piece);
+      if (end <= pos) break; // safety: never loop forever
+      pos = end;
     }
   }
 

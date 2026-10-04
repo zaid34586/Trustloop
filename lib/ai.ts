@@ -55,11 +55,36 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 export const AI_HOURLY_LIMIT = 60;
 export const AI_DAILY_LIMIT = 300;
 
-// 1 initial attempt + at most 2 retries, each on the next model.
+// 1 initial attempt + up to 2 automatic retries with a short backoff.
+// Retries cover network failures, provider 429/5xx and unparseable
+// output (bad JSON) before the error reaches the caller.
 const MAX_ATTEMPTS = 3;
+const RETRY_BACKOFF_MS = [800, 1500];
 // Per-attempt timeout so a hung request becomes a retryable failure
 // and never exceeds the route's maxDuration (60s).
 const REQUEST_TIMEOUT_MS = 30_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Should this failure be retried automatically?
+ * - App-level quota (AiRateLimitError) and config problems: no.
+ * - Provider HTTP errors: only 429/5xx (AiRequestError.retryable);
+ *   a rejected API key or other 4xx is permanent.
+ * - Everything else (network failure, empty response, bad JSON from
+ *   the model): yes.
+ */
+function isRetryableError(err: unknown): boolean {
+  if (err instanceof AiRateLimitError || err instanceof AiConfigError) {
+    return false;
+  }
+  if (err instanceof AiRequestError && err.status !== undefined) {
+    return err.retryable;
+  }
+  return true;
+}
 
 // ------------------------------------------------------------
 // Configuration
@@ -373,9 +398,19 @@ async function execute(
   await recordAiCall(options.supabase, options.userId, options.route);
 
   const models = getModelList(config);
-  const attempts = Math.min(models.length, MAX_ATTEMPTS);
+  let lastError: unknown = new AiRequestError(
+    "The AI service could not be reached."
+  );
 
-  for (let attempt = 0; attempt < attempts; attempt++) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    // Short backoff between retries (attempt 1 and 2 only).
+    if (attempt > 0) {
+      await sleep(RETRY_BACKOFF_MS[attempt - 1]);
+    }
+    // Each retry moves to the next model when fallbacks exist; with a
+    // single model configured it retries the same model after backoff.
+    const modelIndex = Math.min(attempt, models.length - 1);
+
     let text: string;
     try {
       text =
@@ -383,23 +418,23 @@ async function execute(
           ? await callOpenRouter(
               config,
               models,
-              attempt,
+              modelIndex,
               options.system,
               options.prompt,
               options.maxTokens
             )
           : await callAnthropic(
               config,
-              models[attempt],
+              models[modelIndex],
               options.system,
               options.prompt,
               options.maxTokens
             );
     } catch (err) {
-      // Retry 429 / 5xx / timeouts with the next model; never retry
-      // other errors (e.g. a bad API key).
-      const retryable = err instanceof AiRequestError && err.retryable;
-      if (!retryable || attempt + 1 >= attempts) {
+      // Network / 429 / 5xx / empty response — retry up to 2 more
+      // times with backoff; never retry permanent errors (bad key).
+      lastError = err;
+      if (!isRetryableError(err) || attempt + 1 >= MAX_ATTEMPTS) {
         throw err;
       }
       continue;
@@ -412,16 +447,19 @@ async function execute(
     try {
       return { text, parsed: parse(text) };
     } catch (err) {
-      // Output that cannot be parsed as the expected JSON — retry with
-      // the next model, or surface the parsing error on the last try.
-      if (attempt + 1 >= attempts) {
+      // Output that cannot be parsed as the expected JSON (bad JSON) —
+      // retry with backoff, or surface the parsing error on the last try.
+      lastError = err;
+      if (attempt + 1 >= MAX_ATTEMPTS) {
         throw err;
       }
     }
   }
 
   // Unreachable: the loop either returns or throws.
-  throw new AiRequestError("The AI service could not be reached.");
+  throw lastError instanceof Error
+    ? lastError
+    : new AiRequestError("The AI service could not be reached.");
 }
 
 /** Plain-text completion (used by /api/ask). */

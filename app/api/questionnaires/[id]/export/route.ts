@@ -50,21 +50,23 @@ export async function POST(
     );
   }
 
+  // Approved answers always export. Drafted ones only when the user
+  // ticked "Include drafts". Not found / failed / pending are skipped
+  // entirely — their Excel cells stay empty.
   const included = (questions ?? []).filter((q) => {
     if (!q.answer_text) return false;
     if (q.status === "approved") return true;
-    if (
-      includeDrafts &&
-      (q.status === "drafted" || q.status === "not_found")
-    ) {
-      return true;
-    }
+    if (includeDrafts && q.status === "drafted") return true;
     return false;
   });
 
   if (included.length === 0) {
     return NextResponse.json(
-      { error: "Approve some answers first." },
+      {
+        error: includeDrafts
+          ? "There are no approved or drafted answers to export yet."
+          : "Approve some answers first, or tick Include drafts.",
+      },
       { status: 422 }
     );
   }

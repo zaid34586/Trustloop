@@ -222,9 +222,7 @@ export default function AskPage() {
                       {source.file_name}
                     </p>
                     <p className="mt-1.5 whitespace-pre-wrap text-xs leading-5 text-gray-600">
-                      {source.content.length > 500
-                        ? `${source.content.slice(0, 500)}...`
-                        : source.content}
+                      {source.content}
                     </p>
                   </div>
                 ))}

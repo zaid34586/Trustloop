@@ -441,6 +441,17 @@ export default function DocumentsPage() {
                               {busyAction === doc.id ? "..." : "Retry"}
                             </button>
                           )}
+                          {(doc.status === "ready" ||
+                            doc.status === "uploaded") && (
+                            <button
+                              onClick={() => handleRetry(doc)}
+                              disabled={busyAction === doc.id}
+                              className={btnSmSecondary}
+                              title="Rebuild this document's search chunks"
+                            >
+                              {busyAction === doc.id ? "..." : "Reprocess"}
+                            </button>
+                          )}
                           <button
                             onClick={() => handleDownload(doc)}
                             disabled={busyAction === doc.id}
@@ -500,6 +511,15 @@ export default function DocumentsPage() {
                         className={`${btnSmOutlinePrimary} flex-1`}
                       >
                         Retry
+                      </button>
+                    )}
+                    {(doc.status === "ready" || doc.status === "uploaded") && (
+                      <button
+                        onClick={() => handleRetry(doc)}
+                        disabled={busyAction === doc.id}
+                        className={`${btnSmSecondary} flex-1`}
+                      >
+                        {busyAction === doc.id ? "..." : "Reprocess"}
                       </button>
                     )}
                     <button
