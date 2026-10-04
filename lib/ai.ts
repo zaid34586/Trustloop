@@ -31,15 +31,21 @@ export class AiRequestError extends Error {
   readonly status?: number;
   /** Whether this failure is worth retrying with the next model. */
   readonly retryable: boolean;
+  /**
+   * Sanitized provider-side message for SERVER LOGS ONLY (the API key
+   * is redacted, no prompt or document text is ever included).
+   */
+  readonly detail?: string;
 
   constructor(
     message: string,
-    options: { status?: number; retryable?: boolean } = {}
+    options: { status?: number; retryable?: boolean; detail?: string } = {}
   ) {
     super(message);
     this.name = "AiRequestError";
     this.status = options.status;
     this.retryable = options.retryable ?? false;
+    this.detail = options.detail;
   }
 }
 
@@ -227,11 +233,33 @@ async function fetchWithTimeout(url: string, init: RequestInit) {
   }
 }
 
-function providerError(response: Response): AiRequestError {
+async function providerError(
+  response: Response,
+  apiKey: string
+): Promise<AiRequestError> {
   const retryable = response.status === 429 || response.status >= 500;
+
+  // Capture a short provider-side message for server logs. The body may
+  // echo request details, so redact the API key and never keep more
+  // than 300 chars. Reading the body can fail; that is fine.
+  let detail = "";
+  try {
+    const text = await response.text();
+    try {
+      const parsed = JSON.parse(text);
+      detail = String(parsed?.error?.message ?? parsed?.message ?? "");
+    } catch {
+      detail = text.slice(0, 200);
+    }
+  } catch {
+    // No body available.
+  }
+  detail = detail.split(apiKey).join("[redacted]").slice(0, 300).trim();
+
   return new AiRequestError("The AI service could not be reached.", {
     status: response.status,
     retryable,
+    detail,
   });
 }
 
@@ -258,7 +286,7 @@ async function callAnthropic(
   });
 
   if (!response.ok) {
-    throw providerError(response);
+    throw await providerError(response, config.apiKey);
   }
 
   const data = await response.json();
@@ -300,7 +328,7 @@ async function callOpenRouter(
   });
 
   if (!response.ok) {
-    throw providerError(response);
+    throw await providerError(response, config.apiKey);
   }
 
   const data = await response.json();

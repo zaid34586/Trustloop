@@ -1,14 +1,16 @@
 -- ============================================================
 -- Trustloop — FIX: "I could not find this in your documents"
--- Run this file in the Supabase Dashboard > SQL Editor, then
--- retry Generate answers / Ask. Safe to run more than once.
+-- NOTE: the app no longer calls search_chunks() — retrieval happens
+-- in lib/retrieval.ts (app-side ranking over document_chunks), so
+-- running this file is OPTIONAL (kept for manual SQL queries).
 --
--- Root cause: search_chunks() used websearch_to_tsquery(), which
--- ANDs every word of your question. A natural question almost never
--- matches every word inside one 1000-char chunk, so the search
--- returned 0 rows and both routes replied "not found" instantly —
--- the AI was never called. The function below ORs the same (stemmed,
--- safe) terms and ranks chunks containing ALL terms first.
+-- Root cause (historical): search_chunks() used
+-- websearch_to_tsquery(), which ANDs every word of your question. A
+-- natural question almost never matches every word inside one
+-- 1000-char chunk, so the search returned 0 rows and both routes
+-- replied "not found" instantly — the AI was never called. The
+-- function below ORs the same (stemmed, safe) terms and ranks
+-- chunks containing ALL terms first.
 -- ============================================================
 
 -- 1. Select policy (harmless if it already exists)

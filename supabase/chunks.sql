@@ -47,12 +47,14 @@ create policy "Users can delete own chunks"
   using (auth.uid() = user_id);
 
 -- 4. Search function (security invoker: RLS applies, so results are
---    always limited to the current user's chunks)
---    websearch_to_tsquery() ANDs every word, which almost never
---    matches a natural question against a short chunk (both routes
---    then replied "not found" instantly without calling the AI).
---    Rebuild the stemmed terms as an OR query and rank chunks that
---    contain ALL terms first.
+--    always limited to the current user's chunks).
+--    NOTE: no longer called by the app — retrieval happens in
+--    lib/retrieval.ts (app-side). Kept for manual SQL queries.
+--    History: websearch_to_tsquery() ANDs every word, which almost
+--    never matches a natural question against a short chunk (both
+--    routes then replied "not found" instantly without calling the
+--    AI). This version rebuilds the stemmed terms as an OR query and
+--    ranks chunks containing ALL terms first.
 create or replace function public.search_chunks(
   query_text text,
   match_count int default 5

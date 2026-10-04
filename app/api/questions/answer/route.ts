@@ -3,10 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import {
   AiConfigError,
   AiRateLimitError,
+  AiRequestError,
   completeAiJson,
   extractJsonObject,
   getAiConfig,
 } from "@/lib/ai";
+import {
+  fetchUserChunks,
+  selectChunks,
+  type UserChunk,
+} from "@/lib/retrieval";
 
 export const maxDuration = 60;
 
@@ -22,8 +28,6 @@ Rules:
 - Keep answers under 80 words.
 - If the answer is not in the excerpts, set found to false.
 - Respond with ONLY this JSON, no other text: {"found": true|false, "answer": "...", "confidence": "high|medium|low"}`;
-
-type Chunk = { chunk_id: string; document_id: string; file_name: string; content: string; rank: number };
 
 type AiResult = { found: boolean; answer: string; confidence: string };
 
@@ -77,27 +81,26 @@ export async function POST(request: Request) {
     );
   }
 
-  // Real problems must surface as errors, never as "not found".
-  // If there is no searchable text at all, an empty search result is a
-  // broken state — do not mark every question "not_found".
-  const { count: chunkCount, error: chunkCountError } = await supabase
-    .from("document_chunks")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id);
-
-  if (chunkCountError) {
+  // App-side retrieval: read the user's chunks once through the
+  // session client (RLS applies), rank per question in lib/retrieval.
+  // A DB failure is a real error — never a fake "not_found".
+  let allChunks: UserChunk[];
+  try {
+    allChunks = await fetchUserChunks(supabase, user.id);
+  } catch (err) {
+    console.error(
+      "[api/questions/answer] chunk retrieval failed:",
+      err instanceof Error ? err.message : String(err)
+    );
     return NextResponse.json(
       { error: "Could not search your documents. Please try again." },
       { status: 500 }
     );
   }
-  if (!chunkCount) {
+  if (allChunks.length === 0) {
     return NextResponse.json(
-      {
-        error:
-          "No searchable text was found in your documents. Re-process the document, then try again.",
-      },
-      { status: 422 }
+      { error: "Upload and process a document first" },
+      { status: 400 }
     );
   }
 
@@ -111,6 +114,9 @@ export async function POST(request: Request) {
 
   // Set when the per-call rate limit kicks in mid-batch.
   let rateLimitedMessage: string | null = null;
+  // Set when the AI service itself failed (config/network/provider error
+  // other than rate limiting) — reported as a real error, never not_found.
+  let aiServiceError = false;
 
   for (const id of ids) {
     // Ownership: RLS also scopes this, but we need the row anyway.
@@ -133,47 +139,51 @@ export async function POST(request: Request) {
     }
 
     try {
-      // Top 6 excerpts for the current user only (security invoker + RLS).
-      const { data: chunks, error: searchError } = await supabase.rpc(
-        "search_chunks",
-        { query_text: question.question_text, match_count: 6 }
-      );
+      // App-side ranking: <=30 chunks -> all of them; otherwise the
+      // top 6 by keyword overlap. Non-empty whenever any chunk exists,
+      // so the AI is always called.
+      const topChunks = selectChunks(allChunks, question.question_text);
 
-      if (searchError) {
-        throw new Error("Document search failed.");
-      }
-
-      const topChunks = (chunks ?? []) as Chunk[];
+      const excerpts = topChunks
+        .map(
+          (chunk, i) => `[${i + 1}] File: ${chunk.file_name}\n${chunk.content}`
+        )
+        .join("\n\n---\n\n");
 
       let parsed: AiResult | null = null;
-      if (topChunks.length > 0) {
-        const excerpts = topChunks
-          .map(
-            (chunk, i) =>
-              `[${i + 1}] File: ${chunk.file_name}\n${chunk.content}`
-          )
-          .join("\n\n---\n\n");
-
-        // The parse callback runs inside the retry loop: if the output
-        // cannot be parsed as the expected JSON, the next model is tried.
-        try {
-          parsed = await completeAiJson<AiResult>({
-            supabase,
-            userId: user.id,
-            route: "/api/questions/answer",
-            system: SYSTEM_PROMPT,
-            prompt: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestionnaire question: ${question.question_text}`,
-            maxTokens: 512,
-            parse: parseAiJson,
-          });
-        } catch (err) {
-          // Rate limit: stop the batch without marking this question failed.
-          if (err instanceof AiRateLimitError) {
-            rateLimitedMessage = err.message;
-            break;
-          }
-          throw err;
+      // The parse callback runs inside the retry loop: if the output
+      // cannot be parsed as the expected JSON, the next model is tried.
+      try {
+        parsed = await completeAiJson<AiResult>({
+          supabase,
+          userId: user.id,
+          route: "/api/questions/answer",
+          system: SYSTEM_PROMPT,
+          prompt: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestionnaire question: ${question.question_text}`,
+          maxTokens: 512,
+          parse: parseAiJson,
+        });
+      } catch (err) {
+        // Rate limit: stop the batch without marking this question failed.
+        if (err instanceof AiRateLimitError) {
+          rateLimitedMessage = err.message;
+          break;
         }
+        // Real AI failure (network/provider/config): log the status +
+        // provider message (no secrets, no document text), mark this
+        // question failed via the outer catch, and stop the batch.
+        const status = err instanceof AiRequestError ? err.status : undefined;
+        const detail =
+          err instanceof AiRequestError
+            ? err.detail || err.message
+            : err instanceof Error
+              ? err.message
+              : String(err);
+        console.error(
+          `[api/questions/answer] AI call failed (status=${status ?? "n/a"}): ${detail}`
+        );
+        aiServiceError = true;
+        throw err;
       }
 
       if (!parsed || !parsed.found || !parsed.answer.trim()) {
@@ -221,7 +231,9 @@ export async function POST(request: Request) {
         });
       }
     } catch {
-      // One failure must not stop the other questions in the batch.
+      // One failure must not stop the other questions in the batch —
+      // unless the AI service itself is down (aiServiceError), in which
+      // case we stop after marking this question failed.
       await supabase
         .from("questions")
         .update({ status: "failed" })
@@ -234,6 +246,8 @@ export async function POST(request: Request) {
         sources: [],
       });
     }
+
+    if (aiServiceError) break;
   }
 
   // Update questionnaire status: 'answering' while questions remain,
@@ -270,6 +284,18 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: rateLimitedMessage, message: rateLimitedMessage },
       { status: 429 }
+    );
+  }
+
+  // The AI service failed for real (not rate limiting): report it as an
+  // error. The UI reloads, so already-saved results appear anyway.
+  if (aiServiceError) {
+    return NextResponse.json(
+      {
+        error: "AI service error, please try again",
+        message: "AI service error, please try again",
+      },
+      { status: 502 }
     );
   }
 

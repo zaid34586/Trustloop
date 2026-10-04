@@ -334,6 +334,10 @@ export default function QuestionnaireDetailPage() {
           break;
         }
         applyResults(data.results ?? []);
+        if (data?.error) {
+          setError(data.error);
+          break;
+        }
       } catch {
         setError("Could not reach the server. Please try again.");
         break;

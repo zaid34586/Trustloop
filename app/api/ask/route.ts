@@ -3,9 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import {
   AiConfigError,
   AiRateLimitError,
+  AiRequestError,
   completeAi,
   getAiConfig,
 } from "@/lib/ai";
+import {
+  fetchUserChunks,
+  selectChunks,
+  type UserChunk,
+} from "@/lib/retrieval";
 
 export const maxDuration = 60;
 
@@ -54,80 +60,41 @@ export async function POST(request: Request) {
     );
   }
 
-  // The user must have at least one processed document.
-  const { count: readyCount, error: readyError } = await supabase
-    .from("documents")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("status", "ready");
-
-  if (readyError) {
-    // A failed lookup is an error — never pretend the answer wasn't found.
+  // App-side retrieval: read the user's chunks through the session
+  // client (RLS applies), rank them in lib/retrieval.ts. No dependency
+  // on the search_chunks SQL function — a DB failure is a real error,
+  // never a fake "not found".
+  let chunks: UserChunk[];
+  try {
+    chunks = await fetchUserChunks(supabase, user.id);
+  } catch (err) {
+    console.error(
+      "[api/ask] chunk retrieval failed:",
+      err instanceof Error ? err.message : String(err)
+    );
     return NextResponse.json(
-      { error: "Could not check your documents. Please try again." },
+      { error: "Could not search your documents. Please try again." },
       { status: 500 }
     );
   }
 
-  if (!readyCount) {
+  if (chunks.length === 0) {
     return NextResponse.json(
       {
-        error: "no_documents",
-        message:
-          "You don't have any processed documents yet. Upload a document first — Trustloop can only answer from your own files.",
+        error: "Upload and process a document first",
+        message: "Upload and process a document first",
       },
       { status: 400 }
     );
   }
 
-  // Search is limited to the current user's chunks by the search_chunks
-  // function (security invoker + RLS).
-  const { data: chunks, error: searchError } = await supabase.rpc(
-    "search_chunks",
-    { query_text: question, match_count: 6 }
-  );
+  // <=30 chunks: send all of them; otherwise the top 6 by keyword
+  // overlap. Non-empty here => the AI must always be called.
+  const selected = selectChunks(chunks, question);
 
-  if (searchError) {
-    return NextResponse.json(
-      { error: "Search failed. Please try again." },
-      { status: 500 }
-    );
-  }
-
-  if (!chunks || chunks.length === 0) {
-    // Distinguish a real "not in the docs" from a broken/empty search.
-    const { count: chunkCount, error: chunkCountError } = await supabase
-      .from("document_chunks")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
-
-    if (chunkCountError) {
-      return NextResponse.json(
-        { error: "Could not search your documents. Please try again." },
-        { status: 500 }
-      );
-    }
-    if (!chunkCount) {
-      return NextResponse.json(
-        {
-          error:
-            "No searchable text was found in your documents. Re-process the document, then try again.",
-          message:
-            "No searchable text was found in your documents. Re-process the document, then try again.",
-        },
-        { status: 422 }
-      );
-    }
-    return NextResponse.json({
-      answer: "I could not find this in your documents.",
-      sources: [],
-    });
-  }
-
-  const excerpts = chunks
+  const excerpts = selected
     .map(
-      (chunk: { file_name: string; content: string }, i: number) =>
-        `[${i + 1}] File: ${chunk.file_name}\n${chunk.content}`
+      (chunk, i) => `[${i + 1}] File: ${chunk.file_name}\n${chunk.content}`
     )
     .join("\n\n---\n\n");
 
@@ -143,7 +110,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       answer,
-      sources: chunks.map((chunk: { file_name: string; content: string }) => ({
+      sources: selected.slice(0, 6).map((chunk) => ({
         file_name: chunk.file_name,
         content: chunk.content,
       })),
@@ -158,8 +125,21 @@ export async function POST(request: Request) {
     if (err instanceof AiConfigError) {
       return NextResponse.json({ error: err.message }, { status: 500 });
     }
+    // AI request failure: show a clear message and log the status code
+    // + provider message on the server (no secrets, no document text).
+    const status = err instanceof AiRequestError ? err.status : undefined;
+    const message =
+      err instanceof AiRequestError
+        ? err.detail || err.message
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    console.error(`[api/ask] AI call failed (status=${status ?? "n/a"}): ${message}`);
     return NextResponse.json(
-      { error: "The AI service could not be reached. Please try again." },
+      {
+        error: "AI service error, please try again",
+        message: "AI service error, please try again",
+      },
       { status: 502 }
     );
   }

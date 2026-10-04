@@ -27,7 +27,8 @@ It creates, from an empty database and in dependency order:
 
 - `profiles` + the signup trigger (`on_auth_user_created`)
 - `documents` + RLS (select/insert/update/delete)
-- `document_chunks` + GIN index + the `search_chunks` function + RLS
+- `document_chunks` + GIN index + the `search_chunks` function (manual
+  queries only — the app ranks chunks in `lib/retrieval.ts`) + RLS
 - `questionnaires` + RLS (full CRUD)
 - `questions` + review columns (`edited_by_user`, `approved_at`) +
   `updated_at` trigger + RLS (full CRUD)

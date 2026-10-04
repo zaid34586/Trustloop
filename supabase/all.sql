@@ -127,7 +127,8 @@ create policy "Users can delete own documents"
 -- ------------------------------------------------------------
 -- 4. document_chunks — extracted text chunks + full-text search column
 --    App usage: insert + delete (reprocess) in /api/documents/process,
---    select via the search_chunks function. No updates in app code.
+--    select (all rows for the user) in lib/retrieval.ts, where chunks
+--    are ranked app-side. No updates in app code.
 -- ------------------------------------------------------------
 create table if not exists public.document_chunks (
   id uuid primary key default gen_random_uuid(),
@@ -169,14 +170,16 @@ create policy "Users can delete own chunks"
 
 -- ------------------------------------------------------------
 -- 5. search_chunks — full-text search over the user's own chunks.
---    Called via supabase.rpc("search_chunks") in /api/ask and
---    /api/questions/answer. security invoker => RLS applies, so
---    results are always limited to the current user's rows.
+--    NOTE: kept for manual SQL queries only. The app no longer calls
+--    it — /api/ask and /api/questions/answer read the user's chunks
+--    and rank them in lib/retrieval.ts (app-side keyword ranking),
+--    so retrieval never depends on tsquery matching. security
+--    invoker => RLS still applies if you query it by hand.
 --    Must be created after documents + document_chunks exist.
 --
---    IMPORTANT: websearch_to_tsquery() ANDs every word ('a' & 'b'),
+--    History: websearch_to_tsquery() ANDs every word ('a' & 'b'),
 --    which almost never matches a natural-language question against a
---    short chunk — that made both routes return 0 rows and reply
+--    short chunk — both routes returned 0 rows and replied
 --    "not found" instantly without ever calling the AI. The query
 --    below rebuilds the same stemmed terms as an OR query (loose)
 --    so any relevant term matches, and ranks chunks that match ALL
