@@ -130,6 +130,10 @@ URL to Supabase's redirect URLs (step 3).
 | Route                        | Description                                         |
 | ---------------------------- | --------------------------------------------------- |
 | `/`                          | Landing page                                        |
+| `/pricing`                   | Pricing (public)                                    |
+| `/about`                     | About (public)                                      |
+| `/contact`                   | Contact (public)                                    |
+| `/security`                  | Security (public)                                   |
 | `/signup`                    | Create an account (email + password)                |
 | `/login`                     | Log in (with "Forgot password?" link)               |
 | `/forgot-password`           | Request a password reset email                      |
