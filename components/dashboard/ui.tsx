@@ -1,58 +1,48 @@
 import type { ReactNode } from "react";
 
 // ============================================================
-// Shared dashboard UI: consistent buttons, badges, empty states,
-// skeletons and error cards. Presentation only — no logic.
+// Shared UI: buttons, badges, inputs, page headers, empty states,
+// skeletons and alert cards — Trustloop design system tokens
+// (see "Trustloop app" section in app/globals.css).
+// Presentation only — no logic.
 // ============================================================
 
 // ---------- Buttons ----------
 
-export const btnPrimary =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60";
+export const btnPrimary = "btn btn-primary";
 
-export const btnSecondary =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-150 hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnSecondary = "btn btn-secondary";
 
-export const btnDanger =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition-all duration-150 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnDanger = "btn btn-danger";
 
-export const btnSuccess =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition-all duration-150 hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnSuccess = "btn btn-success";
 
-export const btnSmPrimary =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnSmPrimary = "btn btn-primary btn-sm";
 
-export const btnSmSecondary =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnSmSecondary = "btn btn-secondary btn-sm";
 
-export const btnSmDanger =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-colors duration-150 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnSmDanger = "btn btn-danger btn-sm";
 
-export const btnSmSuccess =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors duration-150 hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnSmSuccess = "btn btn-success btn-sm";
 
-export const btnSmOutlinePrimary =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition-colors duration-150 hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-60";
+export const btnSmOutlinePrimary = "btn btn-outline-primary btn-sm";
 
-export const inputClass =
-  "w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20";
+export const inputClass = "app-input";
 
-export const inputDisabledClass =
-  "w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-500";
+export const inputDisabledClass = "app-input";
 
-export const selectClass =
-  "w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20";
+export const selectClass = "app-select";
 
 // ---------- Badges ----------
 
 const badgeTones: Record<string, string> = {
-  gray: "bg-gray-100 text-gray-600",
-  blue: "bg-blue-50 text-blue-700",
-  green: "bg-green-50 text-green-700",
-  amber: "bg-amber-50 text-amber-700",
-  red: "bg-red-50 text-red-700",
-  primary: "bg-primary-50 text-primary-700",
-  orange: "bg-orange-50 text-orange-700",
+  gray: "pill-gray",
+  blue: "pill-blue",
+  green: "pill-green",
+  amber: "pill-amber",
+  red: "pill-red",
+  primary: "pill-primary",
+  orange: "pill-amber",
 };
 
 export function Badge({
@@ -66,9 +56,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-        badgeTones[tone] ?? badgeTones.gray
-      } ${className}`}
+      className={`pill ${badgeTones[tone] ?? badgeTones.gray} ${className}`}
     >
       {children}
     </span>
@@ -87,16 +75,12 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="app-page-header">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="mt-1 text-sm leading-6 text-gray-600">{subtitle}</p>
-        )}
+        <h1 className="app-title">{title}</h1>
+        {subtitle && <p className="app-subtitle">{subtitle}</p>}
       </div>
-      {children && <div className="flex flex-wrap gap-2">{children}</div>}
+      {children && <div className="app-header-actions">{children}</div>}
     </div>
   );
 }
@@ -123,10 +107,9 @@ export function EmptyState({
   children?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/70 p-10 text-center">
-      <div className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400">
+    <div className="app-empty">
+      <div className="app-empty-icon">
         <svg
-          className="h-5 w-5"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={1.6}
@@ -136,18 +119,14 @@ export function EmptyState({
           {icon}
         </svg>
       </div>
-      <p className="text-sm font-semibold text-gray-900">{title}</p>
-      {description && (
-        <p className="mx-auto mt-1.5 max-w-md text-sm leading-6 text-gray-500">
-          {description}
-        </p>
-      )}
-      {children && <div className="mt-4">{children}</div>}
+      <p className="app-empty-title">{title}</p>
+      {description && <p className="app-empty-desc">{description}</p>}
+      {children && <div className="app-empty-actions">{children}</div>}
     </div>
   );
 }
 
-// ---------- Error card ----------
+// ---------- Alert cards ----------
 
 export function ErrorCard({
   children,
@@ -157,12 +136,8 @@ export function ErrorCard({
   className?: string;
 }) {
   return (
-    <div
-      role="alert"
-      className={`flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-700 ${className}`}
-    >
+    <div role="alert" className={`app-alert app-alert-error ${className}`}>
       <svg
-        className="mt-0.5 h-4 w-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={2}
@@ -188,12 +163,8 @@ export function SuccessCard({
   className?: string;
 }) {
   return (
-    <div
-      role="status"
-      className={`flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3.5 text-sm text-green-700 ${className}`}
-    >
+    <div role="status" className={`app-alert app-alert-success ${className}`}>
       <svg
-        className="mt-0.5 h-4 w-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={2}
@@ -219,12 +190,8 @@ export function NoticeCard({
   className?: string;
 }) {
   return (
-    <div
-      role="status"
-      className={`flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-sm text-blue-700 ${className}`}
-    >
+    <div role="status" className={`app-alert app-alert-info ${className}`}>
       <svg
-        className="mt-0.5 h-4 w-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={2}
@@ -245,12 +212,12 @@ export function NoticeCard({
 // ---------- Skeletons ----------
 
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-gray-100 ${className}`} />;
+  return <div className={`skeleton ${className}`} />;
 }
 
 export function CardSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="app-card">
       <Skeleton className="h-4 w-32" />
       <div className="mt-4 space-y-3">
         {Array.from({ length: rows }).map((_, i) => (
@@ -263,18 +230,18 @@ export function CardSkeleton({ rows = 3 }: { rows?: number }) {
 
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div className="app-table-scroll">
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 border-b border-gray-100 px-5 py-4 last:border-b-0"
+          className="flex items-center gap-4 border-b border-border px-5 py-4 last:border-b-0"
         >
-          <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
+          <Skeleton className="h-9 w-9 shrink-0" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-3.5 w-1/2" />
             <Skeleton className="h-3 w-1/3" />
           </div>
-          <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+          <Skeleton className="h-5 w-16 shrink-0" />
         </div>
       ))}
     </div>
