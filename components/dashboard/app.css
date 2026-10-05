@@ -168,6 +168,7 @@
 }
 .tl-app .tl-card-hover { transition: box-shadow 160ms ease, border-color 160ms ease; }
 .tl-app .tl-card-hover:hover { box-shadow: var(--tl-shadow-soft); border-color: color-mix(in oklab, var(--tl-border) 60%, var(--tl-ring)); }
+.tl-app .tl-card-error { border-color: oklch(0.88 0.05 25); }
 .tl-app .tl-card-title { margin: 0; color: var(--tl-navy); font-size: 15px; font-weight: 650; }
 .tl-app .tl-card-sub { margin: 4px 0 0; color: var(--tl-muted); font-size: 13px; }
 .tl-app .tl-page-title { margin: 0; color: var(--tl-navy); font-size: 26px; font-weight: 750; letter-spacing: -0.01em; line-height: 1.2; }
@@ -206,6 +207,7 @@
 .tl-app .tl-alert-error { background: var(--tl-red-bg); border-color: oklch(0.88 0.05 25); color: oklch(0.47 0.15 25); }
 .tl-app .tl-alert-success { background: var(--tl-green-bg); border-color: oklch(0.87 0.05 155); color: oklch(0.42 0.1 155); }
 .tl-app .tl-alert-notice { background: var(--tl-cobalt); border-color: oklch(0.85 0.06 252); color: oklch(0.35 0.11 260); }
+.tl-app .tl-alert-warn { background: var(--tl-amber-bg); border-color: oklch(0.88 0.07 88); color: var(--tl-amber-fg); }
 
 /* ---------- Empty state ---------- */
 .tl-app .tl-empty {
