@@ -93,6 +93,30 @@ button, input, textarea { font: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid color-mix(in oklab, var(--ring) 72%, transparent); outline-offset: 3px; }
 ::selection { background: var(--cobalt); color: var(--navy); }
 
+.button-dark, .button-light, .plan-cta, .mock-export, .nav-cta, .form-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  height: 36px;
+  padding: 0 16px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.button-dark:disabled, .button-light:disabled, .plan-cta:disabled, .mock-export:disabled { pointer-events: none; opacity: 0.5; }
+.mobile-menu-toggle { border: 0; background: transparent; color: var(--navy); cursor: pointer; align-items: center; justify-content: center; }
+.faq-trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 0; background: none; border: 0; cursor: pointer; text-align: left; font-family: var(--font-sans); }
+.faq-chevron { width: 16px; height: 16px; flex-shrink: 0; margin-left: auto; color: var(--muted-foreground); transition: transform 200ms ease; }
+.faq-trigger[aria-expanded="true"] .faq-chevron { transform: rotate(180deg); }
+
 .site-shell { width: min(100% - 64px, 1160px); margin-inline: auto; }
 .site-header { position: sticky; z-index: 30; top: 0; background: color-mix(in oklab, var(--background) 90%, transparent); backdrop-filter: blur(18px); border-bottom: 1px solid color-mix(in oklab, var(--border) 78%, transparent); }
 .nav-inner { height: 72px; display: flex; align-items: center; justify-content: space-between; }

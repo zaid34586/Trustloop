@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
-import { LegalPage } from "@/components/marketing/inner";
+import { LegalPage } from "@/components/marketing/site";
+
+const title = "Privacy Policy — Trustloop";
+const description =
+  "Review the Trustloop draft privacy policy, including disclosure of third-party AI document processing.";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Trustloop",
-  description: "Draft privacy policy template for Trustloop. Must be reviewed by a lawyer before launch.",
-  openGraph: { title: "Privacy Policy — Trustloop", type: "website" },
-  twitter: { card: "summary", title: "Privacy Policy — Trustloop" },
+  title,
+  description,
+  openGraph: {
+    title,
+    description: "Draft Trustloop privacy policy for review before publication.",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title, description },
 };
 
-export default function PrivacyPage() {
+export default function Privacy() {
   return <LegalPage kind="privacy" />;
 }

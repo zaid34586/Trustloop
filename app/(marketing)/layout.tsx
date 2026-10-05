@@ -1,13 +1,15 @@
-import "@/components/marketing/marketing.css";
-import { SiteNav } from "@/components/marketing/site-nav";
-import { SiteFooter } from "@/components/marketing/site-footer";
+import { Navbar, Footer } from "@/components/marketing/site";
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+export default function MarketingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="tl-marketing">
-      <SiteNav />
+    <>
+      <Navbar />
       {children}
-      <SiteFooter />
-    </div>
+      <Footer />
+    </>
   );
 }

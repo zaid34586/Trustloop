@@ -1,28 +1,21 @@
 import type { Metadata } from "next";
-import { ContactDetails, PageIntro } from "@/components/marketing/inner";
+import { ContactPage } from "@/components/marketing/site";
 
-const title = "Contact — Trustloop";
-const description = "For questions about early access, product details, or support, reach out by email.";
+const title = "Contact Trustloop";
+const description =
+  "Contact the Trustloop team about early access, support, and product questions.";
 
 export const metadata: Metadata = {
   title,
   description,
-  openGraph: { title, description, type: "website" },
-  twitter: { card: "summary", title, description },
+  openGraph: {
+    title,
+    description: "Get in touch with the Trustloop team.",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title, description },
 };
 
-export default function ContactPage() {
-  return (
-    <main className="inner-page">
-      <div className="site-shell">
-        <PageIntro
-          eyebrow="CONTACT"
-          title="Talk to the Trustloop team."
-          description="For questions about early access, product details, or support, reach out by email."
-        />
-        <ContactDetails />
-        <p className="last-updated">Last updated: [DATE]</p>
-      </div>
-    </main>
-  );
+export default function Contact() {
+  return <ContactPage />;
 }

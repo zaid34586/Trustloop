@@ -1,37 +1,17 @@
 import type { Metadata } from "next";
-import {
-  Features,
-  FinalCTA,
-  Hero,
-  HowItWorks,
-  Problems,
-  TrustSection,
-} from "@/components/marketing/home-sections";
-import { PricingSection } from "@/components/marketing/pricing-section";
-import { FaqBand } from "@/components/marketing/faq-section";
+import { HomePage } from "@/components/marketing/site";
 
-const title = "Trustloop — Security questionnaires, answered with confidence";
+const title = "Trustloop — Security questionnaires, answered in minutes";
 const description =
-  "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.";
+  "Draft sourced security questionnaire answers from your own documents. Review every response before sharing.";
 
 export const metadata: Metadata = {
   title,
   description,
   openGraph: { title, description, type: "website" },
-  twitter: { card: "summary", title, description },
+  twitter: { card: "summary_large_image", title, description },
 };
 
-export default function HomePage() {
-  return (
-    <main>
-      <Hero />
-      <Problems />
-      <Features />
-      <HowItWorks />
-      <TrustSection />
-      <PricingSection />
-      <FaqBand />
-      <FinalCTA />
-    </main>
-  );
+export default function Home() {
+  return <HomePage />;
 }

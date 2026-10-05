@@ -1,27 +1,22 @@
 import type { Metadata } from "next";
-import { PageIntro, SecurityContent } from "@/components/marketing/inner";
+import { SecurityPage } from "@/components/marketing/site";
 
-const title = "Security — Trustloop";
-const description = "An honest outline of how Trustloop stores documents, separates accounts, and drafts answers.";
+const title = "Security and data handling — Trustloop";
+const description =
+  "A straightforward overview of Trustloop's stated data handling and security practices.";
 
 export const metadata: Metadata = {
   title,
   description,
-  openGraph: { title, description, type: "website" },
-  twitter: { card: "summary", title, description },
+  openGraph: {
+    title,
+    description:
+      "Understand how customer documents are handled when drafting security questionnaire answers.",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title, description },
 };
 
-export default function SecurityPage() {
-  return (
-    <main className="inner-page">
-      <div className="site-shell">
-        <PageIntro
-          eyebrow="SECURITY"
-          title="A clear view of how Trustloop handles data."
-          description="An honest outline of the security practices described for the product."
-        />
-        <SecurityContent />
-      </div>
-    </main>
-  );
+export default function Security() {
+  return <SecurityPage />;
 }

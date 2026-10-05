@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
-import { LegalPage } from "@/components/marketing/inner";
+import { LegalPage } from "@/components/marketing/site";
+
+const title = "Terms of Service — Trustloop";
+const description =
+  "Review the Trustloop draft terms of service. Legal template placeholders require completion and review.";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Trustloop",
-  description: "Draft terms of service template for Trustloop. Must be reviewed by a lawyer before launch.",
-  openGraph: { title: "Terms of Service — Trustloop", type: "website" },
-  twitter: { card: "summary", title: "Terms of Service — Trustloop" },
+  title,
+  description,
+  openGraph: {
+    title,
+    description: "Draft Trustloop terms of service for review before publication.",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title, description },
 };
 
-export default function TermsPage() {
+export default function Terms() {
   return <LegalPage kind="terms" />;
 }
