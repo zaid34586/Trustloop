@@ -35,6 +35,9 @@
   --color-green: var(--green);
   --color-mint: var(--mint);
   --color-sky: var(--sky);
+  --color-surface-deep: var(--surface-deep);
+  --color-surface-tint: var(--surface-tint);
+  --color-surface-light: var(--surface-light);
 
   --color-primary-50: oklch(0.97 0.016 160);
   --color-primary-100: oklch(0.94 0.03 160);
@@ -671,7 +674,7 @@ h1, h2, h3, .brand, .plan-price { font-family: var(--font-sora), var(--font-sans
   text-transform: uppercase;
   white-space: nowrap;
 }
-.app-table td { padding: 15px 16px; border-bottom: 1px solid oklch(0.94 0.01 160); color: var(--foreground); font-size: 14px; line-height: 1.6; vertical-align: top; }
+.app-table td { padding: 15px 16px; border-bottom: 1px solid oklch(0.94 0.01 160); font-size: 14px; line-height: 1.6; vertical-align: top; }
 .app-table tbody tr:last-child td { border-bottom: 0; }
 .app-table tbody tr { transition: background 120ms ease; }
 .app-table tbody tr:hover td { background: var(--surface-light); }
@@ -736,6 +739,10 @@ h1, h2, h3, .brand, .plan-price { font-family: var(--font-sora), var(--font-sans
 .auth-title { margin: 0; color: var(--navy); font-family: var(--font-sora), var(--font-sans); font-size: 26px; font-weight: 600; text-align: center; letter-spacing: 0; }
 .auth-sub { margin: 9px 0 0; color: var(--muted-foreground); font-size: 14.5px; line-height: 1.7; text-align: center; }
 .auth-form { display: grid; gap: 15px; margin-top: 26px; }
+.auth-label-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.auth-inline-label { margin-bottom: 7px; }
+.auth-forgot { color: var(--primary); font-size: 13px; font-weight: 600; }
+.auth-forgot:hover { text-decoration: underline; }
 .auth-links { margin-top: 20px; color: var(--muted-foreground); font-size: 13.5px; line-height: 1.7; text-align: center; }
 .auth-links a { color: var(--primary); font-weight: 600; }
 .auth-links a:hover { text-decoration: underline; }

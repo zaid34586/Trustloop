@@ -89,7 +89,7 @@ function NavList({
   }
 
   return (
-    <nav className="flex flex-1 flex-col gap-1">
+    <nav className="app-nav">
       {navItems.map((item) => {
         const active =
           item.href === "/dashboard"
@@ -101,18 +101,9 @@ function NavList({
             href={item.href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
-              active
-                ? "bg-primary-50 text-primary-700"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            }`}
+            className={`app-nav-item${active ? " active" : ""}`}
           >
             <svg
-              className={`h-5 w-5 shrink-0 transition-colors duration-150 ${
-                active
-                  ? "text-primary-600"
-                  : "text-gray-400 group-hover:text-gray-600"
-              }`}
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.7}
@@ -127,26 +118,15 @@ function NavList({
       })}
 
       {/* User + logout */}
-      <div className="mt-auto border-t border-gray-200 pt-4">
+      <div className="app-account">
         {email && (
-          <div className="mb-2 flex items-center gap-3 px-3 py-2">
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600 text-xs font-bold uppercase text-white">
-              {email.charAt(0)}
-            </span>
-            <span
-              className="min-w-0 truncate text-xs font-medium text-gray-600"
-              title={email}
-            >
-              {email}
-            </span>
+          <div className="app-account-email">
+            <span className="app-avatar">{email.charAt(0)}</span>
+            <span title={email}>{email}</span>
           </div>
         )}
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors duration-150 hover:bg-red-50 hover:text-red-600"
-        >
+        <button onClick={handleLogout} className="app-logout">
           <svg
-            className="h-5 w-5 shrink-0 text-gray-400 transition-colors duration-150"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.7}
@@ -189,17 +169,12 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50">
+    <div className="app-shell">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white md:flex">
-        <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-gray-100 px-5">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary-600 shadow-sm">
-            <svg
-              className="h-4 w-4 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
+      <aside className="app-sidebar">
+        <Link href="/dashboard" className="app-brand">
+          <span className="app-brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M12 2.75l7.25 3.1v5.4c0 4.6-3.05 8.1-7.25 9.9-4.2-1.8-7.25-5.3-7.25-9.9v-5.4L12 2.75z"
                 stroke="currentColor"
@@ -215,32 +190,20 @@ export default function DashboardLayout({
               />
             </svg>
           </span>
-          <Link
-            href="/dashboard"
-            className="text-lg font-bold tracking-tight text-gray-900"
-          >
-            Trustloop
-          </Link>
-        </div>
-        <div className="flex flex-1 flex-col overflow-y-auto p-3">
-          <NavList pathname={pathname} email={email} onNavigate={() => {}} />
-        </div>
+          Trustloop
+        </Link>
+        <NavList pathname={pathname} email={email} onNavigate={() => {}} />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 md:hidden">
+      <header className="app-topbar">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2.5"
+          className="app-brand"
           onClick={() => setMenuOpen(false)}
         >
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600">
-            <svg
-              className="h-3.5 w-3.5 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
+          <span className="app-brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M12 2.75l7.25 3.1v5.4c0 4.6-3.05 8.1-7.25 9.9-4.2-1.8-7.25-5.3-7.25-9.9v-5.4L12 2.75z"
                 stroke="currentColor"
@@ -256,18 +219,15 @@ export default function DashboardLayout({
               />
             </svg>
           </span>
-          <span className="text-lg font-bold tracking-tight text-gray-900">
-            Trustloop
-          </span>
+          Trustloop
         </Link>
         <button
           onClick={() => setMenuOpen((open) => !open)}
           aria-expanded={menuOpen}
           aria-label={menuOpen ? "Close menu" : "Open menu"}
-          className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
+          className="app-menu-toggle"
         >
           <svg
-            className="h-6 w-6"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}
@@ -289,12 +249,12 @@ export default function DashboardLayout({
             )}
           </svg>
         </button>
-      </div>
+      </header>
 
       {/* Mobile menu backdrop */}
       {menuOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/30 md:hidden"
+          className="app-backdrop"
           aria-hidden="true"
           onClick={() => setMenuOpen(false)}
         />
@@ -302,7 +262,7 @@ export default function DashboardLayout({
 
       {/* Mobile collapsible menu */}
       {menuOpen && (
-        <div className="fixed inset-x-0 top-14 z-20 max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b border-gray-200 bg-white p-3 shadow-lg md:hidden">
+        <div className="app-mobile-menu">
           <NavList
             pathname={pathname}
             email={email}
@@ -311,8 +271,8 @@ export default function DashboardLayout({
         </div>
       )}
 
-      <main className="min-w-0 flex-1 px-4 pb-12 pt-20 sm:px-6 md:pt-8">
-        <div className="mx-auto max-w-6xl">{children}</div>
+      <main className="app-main">
+        <div className="app-container">{children}</div>
       </main>
     </div>
   );

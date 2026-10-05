@@ -279,10 +279,10 @@ export default function QuestionnairesPage() {
             handleFile(e.dataTransfer.files[0]);
           }
         }}
-        className={`mt-6 cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+        className={`mt-6 cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
           dragOver
             ? "border-primary-500 bg-primary-50"
-            : "border-gray-300 bg-gray-50 hover:border-primary-400 hover:bg-primary-50/50"
+            : "border-border bg-surface-tint hover:border-primary-400 hover:bg-primary-50/50"
         } ${uploading ? "pointer-events-none opacity-70" : ""}`}
       >
         <input
@@ -302,10 +302,10 @@ export default function QuestionnairesPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
             </span>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-navy">
               Uploading {uploadingName ? `"${uploadingName}"` : "..."}
             </p>
-            <p className="text-xs text-gray-500">Please keep this tab open</p>
+            <p className="text-xs text-muted-foreground">Please keep this tab open</p>
           </div>
         ) : (
           <>
@@ -325,10 +325,10 @@ export default function QuestionnairesPage() {
                 />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-navy">
               Click to upload or drag and drop
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Excel (.xlsx) only, up to 5 MB
             </p>
           </>
@@ -356,24 +356,22 @@ export default function QuestionnairesPage() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm md:block">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+            <div className="hidden overflow-hidden app-card md:block">
+              <table className="app-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 font-medium">Name</th>
-                    <th className="px-4 py-3 font-medium">Date</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Questions</th>
-                    <th className="px-4 py-3 font-medium">Answered</th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      Actions
-                    </th>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Questions</th>
+                    <th>Answered</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody>
                   {questionnaires.map((qnr) => (
-                    <tr key={qnr.id} className="hover:bg-gray-50">
-                      <td className="max-w-[240px] px-4 py-3 font-medium text-gray-900">
+                    <tr key={qnr.id}>
+                      <td className="max-w-[240px] font-medium text-navy">
                         <Link
                           href={`/dashboard/questionnaires/${qnr.id}`}
                           className="block truncate hover:text-primary-700"
@@ -381,19 +379,19 @@ export default function QuestionnairesPage() {
                           {qnr.file_name}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="text-muted-foreground">
                         {formatDate(qnr.created_at)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         <StatusBadge status={qnr.status} />
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="text-muted-foreground">
                         {counts[qnr.id]?.total ?? qnr.total_questions}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="text-muted-foreground">
                         {counts[qnr.id]?.answered ?? 0}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="text-right">
                         <div className="flex justify-end gap-2">
                           <Link
                             href={`/dashboard/questionnaires/${qnr.id}`}
@@ -423,17 +421,17 @@ export default function QuestionnairesPage() {
               {questionnaires.map((qnr) => (
                 <div
                   key={qnr.id}
-                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                  className="app-card"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link
                         href={`/dashboard/questionnaires/${qnr.id}`}
-                        className="block truncate text-sm font-medium text-gray-900 hover:text-primary-700"
+                        className="block truncate text-sm font-medium text-navy hover:text-primary-700"
                       >
                         {qnr.file_name}
                       </Link>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {formatDate(qnr.created_at)} ·{" "}
                         {counts[qnr.id]?.total ?? qnr.total_questions}{" "}
                         questions · {counts[qnr.id]?.answered ?? 0} answered
@@ -475,15 +473,15 @@ export default function QuestionnairesPage() {
             role="dialog"
             aria-modal="true"
             aria-label="Confirm delete"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg"
+            className="w-full max-w-sm app-card"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-navy">
               Delete questionnaire?
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               This will permanently delete{" "}
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-navy">
                 {deleteTarget.file_name}
               </span>{" "}
               and all its questions and answers. This action cannot be undone.

@@ -167,8 +167,8 @@ export default function SettingsPage() {
       />
 
       {/* Profile */}
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-base font-semibold text-gray-900">Profile</h2>
+      <div className="mt-6 app-card sm:p-8">
+        <h2 className="text-base font-semibold text-navy">Profile</h2>
 
         {loadingProfile ? (
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -213,7 +213,7 @@ export default function SettingsPage() {
               <div>
                 <label
                   htmlFor="full-name"
-                  className="mb-1 block text-sm font-medium text-gray-700"
+                  className="mb-1 block text-sm font-medium text-navy"
                 >
                   Full name
                 </label>
@@ -231,7 +231,7 @@ export default function SettingsPage() {
               <div>
                 <label
                   htmlFor="company-name"
-                  className="mb-1 block text-sm font-medium text-gray-700"
+                  className="mb-1 block text-sm font-medium text-navy"
                 >
                   Company name
                 </label>
@@ -249,7 +249,7 @@ export default function SettingsPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="mb-1 block text-sm font-medium text-gray-700"
+                  className="mb-1 block text-sm font-medium text-navy"
                 >
                   Email
                 </label>
@@ -261,19 +261,19 @@ export default function SettingsPage() {
                   className={inputDisabledClass}
                   placeholder="you@company.com"
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Your email cannot be changed here.
                 </p>
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-navy">
                   Role
                 </label>
-                <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                <p className="rounded-lg border border-border bg-surface-tint px-3 py-2 text-sm text-muted-foreground">
                   {role || "user"}
                 </p>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Roles are managed by an administrator.
                 </p>
               </div>
@@ -293,8 +293,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Password */}
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-base font-semibold text-gray-900">
+      <div className="mt-6 app-card sm:p-8">
+        <h2 className="text-base font-semibold text-navy">
           Change password
         </h2>
 
@@ -312,7 +312,7 @@ export default function SettingsPage() {
             <div>
               <label
                 htmlFor="new-password"
-                className="mb-1 block text-sm font-medium text-gray-700"
+                className="mb-1 block text-sm font-medium text-navy"
               >
                 New password
               </label>
@@ -331,7 +331,7 @@ export default function SettingsPage() {
             <div>
               <label
                 htmlFor="confirm-new-password"
-                className="mb-1 block text-sm font-medium text-gray-700"
+                className="mb-1 block text-sm font-medium text-navy"
               >
                 Confirm new password
               </label>

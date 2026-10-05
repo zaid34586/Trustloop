@@ -51,9 +51,9 @@ export default function RetrievalTest() {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">Retrieval test</p>
-      <p className="mt-1 text-xs leading-5 text-gray-500">
+    <div className="app-card">
+      <p className="text-sm font-medium text-muted-foreground">Retrieval test</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
         Reads your chunks with your session (RLS applies), ranks them in
         application code and shows the top 3 matches for a test query.
       </p>
@@ -87,12 +87,12 @@ export default function RetrievalTest() {
 
       {total !== null && matches ? (
         <div className="mt-4">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {total} chunk{total === 1 ? "" : "s"} in your account · top{" "}
             {matches.length} match{matches.length === 1 ? "" : "es"}
           </p>
           {matches.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-600">
+            <p className="mt-3 text-sm text-muted-foreground">
               No chunks yet — upload and process a document first.
             </p>
           ) : (
@@ -100,16 +100,16 @@ export default function RetrievalTest() {
               {matches.map((match) => (
                 <li
                   key={match.id}
-                  className="rounded-xl border border-gray-200 bg-gray-50/50 p-3"
+                  className="rounded-xl border border-border bg-surface-tint/50 p-3"
                 >
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <Badge tone="primary">score {match.score}</Badge>
-                    <span className="font-medium text-gray-700">
+                    <span className="font-medium text-navy">
                       {match.file_name}
                     </span>
                     <span>chunk #{match.chunk_index + 1}</span>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-gray-600">
+                  <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
                     {match.content.length > 320
                       ? `${match.content.slice(0, 320)}…`
                       : match.content}

@@ -315,10 +315,10 @@ export default function DocumentsPage() {
             handleFiles(e.dataTransfer.files);
           }
         }}
-        className={`mt-6 cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors sm:p-10 ${
+        className={`mt-6 cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors sm:p-10 ${
           dragOver
             ? "border-primary-500 bg-primary-50"
-            : "border-gray-300 bg-gray-50 hover:border-primary-400 hover:bg-primary-50/50"
+            : "border-border bg-surface-tint hover:border-primary-400 hover:bg-primary-50/50"
         } ${uploading ? "pointer-events-none opacity-70" : ""}`}
       >
         <input
@@ -339,10 +339,10 @@ export default function DocumentsPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
             </span>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-navy">
               Uploading {uploadingName ? `"${uploadingName}"` : "..."}
             </p>
-            <p className="text-xs text-gray-500">Please keep this tab open</p>
+            <p className="text-xs text-muted-foreground">Please keep this tab open</p>
           </div>
         ) : (
           <>
@@ -362,10 +362,10 @@ export default function DocumentsPage() {
                 />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-navy">
               Click to upload or drag and drop
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               PDF or Word (.docx) only, up to 10 MB per file
             </p>
           </>
@@ -393,36 +393,34 @@ export default function DocumentsPage() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm md:block">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+            <div className="hidden overflow-hidden app-card md:block">
+              <table className="app-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 font-medium">File name</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 font-medium">Size</th>
-                    <th className="px-4 py-3 font-medium">Uploaded</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      Actions
-                    </th>
+                    <th>File name</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Uploaded</th>
+                    <th>Status</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody>
                   {documents.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-gray-50">
-                      <td className="max-w-[220px] truncate px-4 py-3 font-medium text-gray-900">
+                    <tr key={doc.id}>
+                      <td className="max-w-[220px] truncate font-medium text-navy">
                         {doc.file_name}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="text-muted-foreground">
                         {typeLabel(doc.file_type)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="text-muted-foreground">
                         {formatSize(doc.file_size)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="text-muted-foreground">
                         {formatDate(doc.created_at)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         <StatusBadge status={doc.status} />
                         {doc.status === "failed" && doc.error_message && (
                           <p className="mt-1 max-w-[160px] text-xs text-red-600">
@@ -430,7 +428,7 @@ export default function DocumentsPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="text-right">
                         <div className="flex justify-end gap-2">
                           {doc.status === "failed" && (
                             <button
@@ -482,14 +480,14 @@ export default function DocumentsPage() {
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                  className="app-card"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-gray-900">
+                      <p className="truncate text-sm font-medium text-navy">
                         {doc.file_name}
                       </p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {typeLabel(doc.file_type)} · {formatSize(doc.file_size)}{" "}
                         · {formatDate(doc.created_at)}
                       </p>
@@ -557,15 +555,15 @@ export default function DocumentsPage() {
             role="dialog"
             aria-modal="true"
             aria-label="Confirm delete"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg"
+            className="w-full max-w-sm app-card"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-navy">
               Delete document?
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               This will permanently delete{" "}
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-navy">
                 {deleteTarget.file_name}
               </span>{" "}
               from your storage. This action cannot be undone.

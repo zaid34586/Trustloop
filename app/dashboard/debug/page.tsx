@@ -34,23 +34,23 @@ export default async function DebugPage() {
       />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Documents</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">
+        <div className="app-card">
+          <p className="text-sm font-medium text-muted-foreground">Documents</p>
+          <p className="mt-1 text-2xl font-bold text-navy">
             {docsRes.error ? "—" : (docsRes.count ?? 0)}
           </p>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Chunks</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">
+        <div className="app-card">
+          <p className="text-sm font-medium text-muted-foreground">Chunks</p>
+          <p className="mt-1 text-2xl font-bold text-navy">
             {chunksRes.error ? "—" : (chunksRes.count ?? 0)}
           </p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <p className="text-sm font-medium text-gray-500">AI configuration</p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-gray-700">
+      <div className="mt-4 app-card">
+        <p className="text-sm font-medium text-muted-foreground">AI configuration</p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-navy">
           <span className="flex items-center gap-2">
             AI_API_KEY set
             <Badge tone={apiKeySet ? "green" : "red"}>
@@ -65,7 +65,7 @@ export default async function DebugPage() {
           </span>
         </div>
         {!apiKeySet || !modelSet ? (
-          <p className="mt-3 text-xs leading-5 text-gray-500">
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
             Set AI_API_KEY and AI_MODEL in .env.local (restart the dev server
             after editing) — see .env.example for working values.
           </p>

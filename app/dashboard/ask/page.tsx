@@ -109,11 +109,11 @@ export default function AskPage() {
         <>
           <form
             onSubmit={handleAsk}
-            className="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
+            className="mt-6 app-card sm:p-6"
           >
             <label
               htmlFor="question"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-navy"
             >
               Your question
             </label>
@@ -124,10 +124,10 @@ export default function AskPage() {
               rows={4}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="e.g. Do we have a documented incident response plan?"
-              className="w-full resize-none rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full resize-none rounded-xl border border-border px-3.5 py-2.5 text-sm text-navy placeholder-muted-foreground transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
             <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 {question.length}/{MAX_CHARS}
               </span>
               <button
@@ -143,13 +143,13 @@ export default function AskPage() {
           {error && <ErrorCard className="mt-4">{error}</ErrorCard>}
 
           {loading && (
-            <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mt-4 app-card">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
                 </span>
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-navy">
                   Searching your documents and drafting an answer...
                 </p>
               </div>
@@ -162,7 +162,7 @@ export default function AskPage() {
           )}
 
           {answer && !loading && (
-            <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mt-4 app-card">
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
                   <svg
@@ -180,14 +180,14 @@ export default function AskPage() {
                     />
                   </svg>
                 </span>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   Answer
                 </h2>
               </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-navy">
                 {answer}
               </p>
-              <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
+              <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
                 AI draft - please review. Not legal advice.
               </p>
             </div>
@@ -195,14 +195,14 @@ export default function AskPage() {
 
           {sources.length > 0 && !loading && (
             <div className="mt-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Sources
               </h2>
               <div className="mt-3 flex flex-col gap-3">
                 {sources.map((source, index) => (
                   <div
                     key={index}
-                    className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                    className="app-card"
                   >
                     <p className="flex items-center gap-1.5 text-sm font-semibold text-primary-700">
                       <svg
@@ -221,7 +221,7 @@ export default function AskPage() {
                       </svg>
                       {source.file_name}
                     </p>
-                    <p className="mt-1.5 whitespace-pre-wrap text-xs leading-5 text-gray-600">
+                    <p className="mt-1.5 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
                       {source.content}
                     </p>
                   </div>

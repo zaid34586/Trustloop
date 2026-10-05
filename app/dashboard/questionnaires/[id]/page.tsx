@@ -147,7 +147,7 @@ export default function QuestionnaireDetailPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [showApproveAll, setShowApproveAll] = useState(false);
   const [approvingAll, setApprovingAll] = useState(false);
-  // Error for ONE question — shown inside that question's card only.
+  // Error for ONE question â€” shown inside that question's card only.
   const [itemError, setItemError] = useState<{
     id: string;
     message: string;
@@ -296,7 +296,7 @@ export default function QuestionnaireDetailPage() {
         setNotice(
           data?.message ??
             (typeof data?.total === "number"
-              ? `Extracted ${data.total} questions. They are listed below — review them, then generate answers.`
+              ? `Extracted ${data.total} questions. They are listed below â€” review them, then generate answers.`
               : "Questions extracted.")
         );
         await loadAll();
@@ -368,7 +368,7 @@ export default function QuestionnaireDetailPage() {
           break;
         }
       } catch (err) {
-        // Stopped by the user — not an error.
+        // Stopped by the user â€” not an error.
         if (
           stopRef.current ||
           (err instanceof DOMException && err.name === "AbortError")
@@ -493,7 +493,7 @@ export default function QuestionnaireDetailPage() {
 
   async function handleApprove(q: Question) {
     // Only drafted answers (AI-drafted or written manually with Edit)
-    // can be approved — never Not found / Failed / Pending.
+    // can be approved â€” never Not found / Failed / Pending.
     if (q.status !== "drafted" || !q.answer_text) return;
     clearBanners();
     setItemError(null);
@@ -546,7 +546,7 @@ export default function QuestionnaireDetailPage() {
   );
 
   async function handleApproveAll() {
-    // Only Drafted items — recomputed here so a stale list can never
+    // Only Drafted items â€” recomputed here so a stale list can never
     // approve a Not found / Failed / Pending question.
     const ids = questions
       .filter((q) => q.status === "drafted" && q.answer_text)
@@ -637,7 +637,7 @@ export default function QuestionnaireDetailPage() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+              className="app-card"
             >
               <div className="flex items-start justify-between gap-3">
                 <Skeleton className="h-4 w-2/3" />
@@ -696,11 +696,11 @@ export default function QuestionnaireDetailPage() {
   return (
     <div>
       {/* Sticky top bar: back, title, progress, export */}
-      <div className="sticky top-14 z-20 -mx-4 border-b border-gray-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-6 sm:px-6 md:top-0 md:mx-0 md:px-0">
+      <div className="sticky top-14 z-20 -mx-4 border-b border-border bg-card/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-6 sm:px-6 md:top-0 md:mx-0 md:px-0">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             href="/dashboard/questionnaires"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-50"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:border-muted-foreground hover:bg-surface-tint"
             aria-label="Back to questionnaires"
           >
             <svg
@@ -720,7 +720,7 @@ export default function QuestionnaireDetailPage() {
           </Link>
 
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
+            <h1 className="truncate text-sm font-semibold text-navy sm:text-base">
               {questionnaire.file_name}
             </h1>
             <div className="mt-0.5 flex items-center gap-2">
@@ -732,7 +732,7 @@ export default function QuestionnaireDetailPage() {
                 {questionnaire.status.charAt(0).toUpperCase() +
                   questionnaire.status.slice(1)}
               </Badge>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 {questionnaire.total_questions} questions
               </span>
             </div>
@@ -741,13 +741,13 @@ export default function QuestionnaireDetailPage() {
           {reviewActive && (
             <div className="flex w-full items-center gap-3 sm:w-auto">
               <div className="min-w-0 flex-1 sm:flex-none">
-                <p className="text-xs font-medium text-gray-600">
-                  <span className="font-semibold text-gray-900">
+                <p className="text-xs font-medium text-muted-foreground">
+                  <span className="font-semibold text-navy">
                     {approvedCount}
                   </span>{" "}
                   of {questions.length} approved
                 </p>
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 sm:w-32">
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted sm:w-32">
                   <div
                     className="h-full rounded-full bg-primary-600 transition-all duration-500"
                     style={{
@@ -789,13 +789,13 @@ export default function QuestionnaireDetailPage() {
         {error && <ErrorCard className="mt-3">{error}</ErrorCard>}
       </div>
 
-      {/* Step A — column picker */}
+      {/* Step A â€” column picker */}
       {questionnaire.status === "uploaded" && (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="mt-6 app-card sm:p-6">
+          <h2 className="text-lg font-semibold text-navy">
             Choose where the questions are
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             Pick the sheet and the column that contains the questions.
           </p>
 
@@ -806,7 +806,7 @@ export default function QuestionnaireDetailPage() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-              <div className="space-y-2 rounded-xl border border-gray-200 p-4">
+              <div className="space-y-2 rounded-xl border border-border p-4">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-4 w-full" />
                 ))}
@@ -820,7 +820,7 @@ export default function QuestionnaireDetailPage() {
                 <div>
                   <label
                     htmlFor="sheet"
-                    className="mb-1 block text-sm font-medium text-gray-700"
+                    className="mb-1 block text-sm font-medium text-navy"
                   >
                     Sheet
                   </label>
@@ -840,7 +840,7 @@ export default function QuestionnaireDetailPage() {
                 <div>
                   <label
                     htmlFor="column"
-                    className="mb-1 block text-sm font-medium text-gray-700"
+                    className="mb-1 block text-sm font-medium text-navy"
                   >
                     Question column
                   </label>
@@ -853,7 +853,7 @@ export default function QuestionnaireDetailPage() {
                     {(preview.preview_rows[0] ?? []).map((header, i) => (
                       <option key={i} value={i}>
                         Column {i + 1}
-                        {header ? ` — ${header.slice(0, 30)}` : ""}
+                        {header ? ` â€” ${header.slice(0, 30)}` : ""}
                       </option>
                     ))}
                   </select>
@@ -861,7 +861,7 @@ export default function QuestionnaireDetailPage() {
                 <div>
                   <label
                     htmlFor="headerRows"
-                    className="mb-1 block text-sm font-medium text-gray-700"
+                    className="mb-1 block text-sm font-medium text-navy"
                   >
                     Header rows to skip
                   </label>
@@ -879,18 +879,18 @@ export default function QuestionnaireDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200">
+              <div className="mt-6 app-table-scroll">
                 <table className="w-full text-left text-xs">
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border">
                     {preview.preview_rows.map((row, r) => (
-                      <tr key={r} className={r < headerRows ? "bg-gray-50 text-gray-400" : ""}>
+                      <tr key={r} className={r < headerRows ? "bg-surface-tint text-muted-foreground" : ""}>
                         {row.map((cell, c) => (
                           <td
                             key={c}
                             className={`max-w-[220px] truncate px-3 py-2 ${
                               c === selectedCol && r >= headerRows
                                 ? "bg-primary-50 font-medium text-primary-700"
-                                : "text-gray-700"
+                                : "text-navy"
                             }`}
                           >
                             {cell || "\u00A0"}
@@ -901,7 +901,7 @@ export default function QuestionnaireDetailPage() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Preview of the first {preview.preview_rows.length} rows.
                 Rows marked as headers are skipped.
               </p>
@@ -920,9 +920,9 @@ export default function QuestionnaireDetailPage() {
 
       {/* Failed state */}
       {questionnaire.status === "failed" && (
-        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-red-600 shadow-sm">
+        <div className="mt-6 app-alert app-alert-error">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card text-red-600 shadow-sm">
               <svg
                 className="h-5 w-5"
                 fill="none"
@@ -957,7 +957,7 @@ export default function QuestionnaireDetailPage() {
         </div>
       )}
 
-      {/* Step B — answers and review */}
+      {/* Step B â€” answers and review */}
       {["parsed", "answering", "ready"].includes(questionnaire.status) && (
         <div className="mt-6">
           {hasReadyDocs === false ? (
@@ -977,11 +977,11 @@ export default function QuestionnaireDetailPage() {
               </Link>
             </EmptyState>
           ) : (
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="app-card sm:p-6">
               {generating ? (
                 <div>
                   <div className="flex items-center justify-between gap-3">
-                    <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                    <p className="flex items-center gap-2 text-sm font-medium text-navy">
                       <span className="relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-600" />
@@ -1002,7 +1002,7 @@ export default function QuestionnaireDetailPage() {
                       Stop
                     </button>
                   </div>
-                  <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-primary-600 transition-all duration-300"
                       style={{
@@ -1029,7 +1029,7 @@ export default function QuestionnaireDetailPage() {
                       Retry failed ({failedCount})
                     </button>
                   )}
-                  <p className="text-xs text-gray-500 sm:ml-auto">
+                  <p className="text-xs text-muted-foreground sm:ml-auto">
                     {questions.filter((q) => q.status === "pending").length}{" "}
                     of {questions.length} still pending
                   </p>
@@ -1039,20 +1039,20 @@ export default function QuestionnaireDetailPage() {
           )}
 
           {/* Export options */}
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6">
-            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+          <div className="mt-4 app-card px-4 py-4 sm:px-6">
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-navy">
               <input
                 type="checkbox"
                 checked={includeDrafts}
                 onChange={(e) => setIncludeDrafts(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500"
               />
               Include drafts in the export (marked as DRAFT)
             </label>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-muted-foreground">
               By default only approved answers are exported into the original
               file. Use{" "}
-              <span className="font-medium text-gray-700">Download Excel</span>{" "}
+              <span className="font-medium text-navy">Download Excel</span>{" "}
               in the top bar to export.
             </p>
           </div>
@@ -1070,7 +1070,7 @@ export default function QuestionnaireDetailPage() {
                   className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ${
                     filter === f.key
                       ? "bg-primary-600 text-white shadow-sm"
-                      : "border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50"
+                      : "border border-border bg-card text-muted-foreground hover:border-muted-foreground hover:bg-surface-tint"
                   }`}
                 >
                   {f.label} ({count})
@@ -1110,12 +1110,12 @@ export default function QuestionnaireDetailPage() {
               filtered.map((q) => (
                 <div
                   key={q.id}
-                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-colors duration-150 hover:border-gray-300 sm:p-5"
+                  className="app-card transition-colors duration-150 hover:border-border sm:p-5"
                 >
                   {/* Question + badges */}
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 flex-1 text-sm font-semibold leading-6 text-gray-900">
-                      <span className="mr-2 inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 align-middle text-[11px] font-medium text-gray-500">
+                    <p className="min-w-0 flex-1 text-sm font-semibold leading-6 text-navy">
+                      <span className="mr-2 inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 align-middle text-[11px] font-medium text-muted-foreground">
                         #{displayNumbers.get(q.id) ?? 1}
                       </span>
                       {q.question_text}
@@ -1135,10 +1135,10 @@ export default function QuestionnaireDetailPage() {
                         maxLength={MAX_EDIT_CHARS}
                         rows={4}
                         onChange={(e) => setEditText(e.target.value)}
-                        className="w-full resize-none rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                        className="w-full resize-none rounded-xl border border-border px-3.5 py-2.5 text-sm text-navy transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                       />
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           {editText.length}/{MAX_EDIT_CHARS}
                         </span>
                         <div className="flex gap-2">
@@ -1160,14 +1160,14 @@ export default function QuestionnaireDetailPage() {
                       </div>
                     </div>
                   ) : q.answer_text ? (
-                    <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3.5">
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-gray-800">
+                    <div className="mt-3 rounded-xl border border-border bg-surface-tint px-4 py-3.5">
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-navy">
                         {q.answer_text}
                       </p>
                     </div>
                   ) : q.status === "pending" ? (
-                    <p className="mt-3 text-sm italic text-gray-400">
-                      No answer yet — generate answers to draft one.
+                    <p className="mt-3 text-sm italic text-muted-foreground">
+                      No answer yet â€” generate answers to draft one.
                     </p>
                   ) : null}
 
@@ -1178,7 +1178,7 @@ export default function QuestionnaireDetailPage() {
                     </p>
                   )}
 
-                  {/* Error for this item only — never a global banner. */}
+                  {/* Error for this item only â€” never a global banner. */}
                   {itemError?.id === q.id && (
                     <ErrorCard className="mt-3">{itemError.message}</ErrorCard>
                   )}
@@ -1190,7 +1190,7 @@ export default function QuestionnaireDetailPage() {
                         type="button"
                         onClick={() => toggleSources(q.id)}
                         aria-expanded={expanded.has(q.id)}
-                        className="flex w-full items-center justify-between gap-2 rounded-lg border-t border-gray-100 pt-3 text-left text-xs font-semibold text-primary-700 transition-colors hover:text-primary-800"
+                        className="flex w-full items-center justify-between gap-2 rounded-lg border-t border-border pt-3 text-left text-xs font-semibold text-primary-700 transition-colors hover:text-primary-800"
                       >
                         <span className="inline-flex items-center gap-1.5">
                           <svg
@@ -1210,7 +1210,7 @@ export default function QuestionnaireDetailPage() {
                           Sources ({q.sources.length})
                         </span>
                         <svg
-                          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+                          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
                             expanded.has(q.id) ? "rotate-180" : ""
                           }`}
                           fill="none"
@@ -1231,7 +1231,7 @@ export default function QuestionnaireDetailPage() {
                           {q.sources.map((source, i) => (
                             <div
                               key={i}
-                              className="rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-3"
+                              className="rounded-xl border border-border bg-surface-tint px-3.5 py-3"
                             >
                               <p className="flex items-center gap-1.5 text-xs font-semibold text-primary-700">
                                 <svg
@@ -1250,7 +1250,7 @@ export default function QuestionnaireDetailPage() {
                                 </svg>
                                 {source.file_name}
                               </p>
-                              <p className="mt-1 text-xs leading-5 text-gray-600">
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
                                 {source.excerpt}
                               </p>
                             </div>
@@ -1270,7 +1270,7 @@ export default function QuestionnaireDetailPage() {
                       >
                         {q.answer_text ? "Edit" : "Write answer"}
                       </button>
-                      {/* Approve only for Drafted answers — AI drafts or
+                      {/* Approve only for Drafted answers â€” AI drafts or
                           manual edits. Not found / Failed / Pending have
                           no approve action at all. */}
                       {q.status === "drafted" && q.answer_text && (
@@ -1314,7 +1314,7 @@ export default function QuestionnaireDetailPage() {
             )}
           </div>
 
-          <p className="mt-6 text-center text-xs text-gray-500">
+          <p className="mt-6 text-center text-xs text-muted-foreground">
             AI drafts - please review before sending. Not legal advice.
           </p>
         </div>
@@ -1330,15 +1330,15 @@ export default function QuestionnaireDetailPage() {
             role="dialog"
             aria-modal="true"
             aria-label="Confirm approve all"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg"
+            className="w-full max-w-sm app-card"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-navy">
               Approve all drafted answers?
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               This will approve{" "}
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-navy">
                 {draftedWithAnswers.length}
               </span>{" "}
               drafted answer
@@ -1356,7 +1356,7 @@ export default function QuestionnaireDetailPage() {
               <button
                 onClick={handleApproveAll}
                 disabled={approvingAll}
-                className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-60"
+                className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-60"
               >
                 {approvingAll ? "Approving..." : "Approve all"}
               </button>

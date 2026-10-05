@@ -7,6 +7,7 @@ import {
   PageHeader,
   ListSkeleton,
   Skeleton,
+  Badge,
   btnPrimary,
   btnSecondary,
 } from "@/components/dashboard/ui";
@@ -106,9 +107,9 @@ function StatCard({
   iconClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow duration-150 hover:shadow-md">
+    <div className="app-card transition-shadow duration-150 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
         <span
           className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
         >
@@ -127,11 +128,11 @@ function StatCard({
       {value === null ? (
         <Skeleton className="mt-2 h-9 w-16" />
       ) : (
-        <p className="mt-1 text-3xl font-bold tracking-tight text-gray-900">
+        <p className="mt-1 text-3xl font-bold tracking-tight text-navy">
           {value}
         </p>
       )}
-      {sub && <p className="mt-1 text-xs text-gray-500">{sub}</p>}
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
@@ -282,7 +283,7 @@ export default function DashboardPage() {
           value={docsTotal}
           sub={docsReady !== null ? `${docsReady} ready` : undefined}
           icon={statIcons.documents}
-          iconClass="bg-blue-50 text-blue-600"
+          iconClass="bg-sky text-cobalt"
         />
         <StatCard
           label="Questionnaires"
@@ -300,7 +301,7 @@ export default function DashboardPage() {
           label="Approved answers"
           value={qApproved}
           icon={statIcons.approved}
-          iconClass="bg-green-50 text-green-600"
+          iconClass="bg-mint text-primary-700"
         />
       </div>
 
@@ -319,13 +320,13 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-5">
         {/* Get started checklist */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-3">
+        <div className="app-card sm:p-6 lg:col-span-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Get started
               </h2>
-              <p className="mt-1 text-sm text-gray-600">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {statsLoaded
                   ? `${doneCount} of ${checklist.length} complete`
                   : " "}
@@ -341,7 +342,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary-600 transition-all duration-500"
               style={{
@@ -367,13 +368,13 @@ export default function DashboardPage() {
                   <li key={item.title}>
                     <Link
                       href={item.href}
-                      className="group flex items-center gap-3 rounded-xl p-2 -m-2 transition-colors hover:bg-gray-50"
+                      className="group flex items-center gap-3 rounded-xl p-2 -m-2 transition-colors hover:bg-surface-tint"
                     >
                       <span
                         className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                           item.done
                             ? "bg-primary-600 text-white"
-                            : "border-2 border-gray-200 bg-white text-gray-400 group-hover:border-primary-300"
+                            : "border-2 border-border bg-card text-muted-foreground group-hover:border-primary-300"
                         }`}
                       >
                         {item.done ? (
@@ -399,18 +400,18 @@ export default function DashboardPage() {
                         <span
                           className={`block text-sm font-medium ${
                             item.done
-                              ? "text-gray-400 line-through"
-                              : "text-gray-900"
+                              ? "text-muted-foreground line-through"
+                              : "text-navy"
                           }`}
                         >
                           {item.title}
                         </span>
-                        <span className="block truncate text-xs text-gray-500">
+                        <span className="block truncate text-xs text-muted-foreground">
                           {item.description}
                         </span>
                       </span>
                       <svg
-                        className="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-primary-500"
+                        className="h-4 w-4 shrink-0 text-border transition-colors group-hover:text-primary-500"
                         fill="none"
                         viewBox="0 0 24 24"
                         strokeWidth={2}
@@ -430,8 +431,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent activity */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+        <div className="app-card sm:p-6 lg:col-span-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Recent activity
           </h2>
 
@@ -449,7 +450,7 @@ export default function DashboardPage() {
             </div>
           ) : activity.length === 0 ? (
             <div className="mt-6 text-center">
-              <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-400">
+              <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface-tint text-muted-foreground">
                 <svg
                   className="h-5 w-5"
                   fill="none"
@@ -465,10 +466,10 @@ export default function DashboardPage() {
                   />
                 </svg>
               </div>
-              <p className="mt-3 text-sm font-medium text-gray-900">
+              <p className="mt-3 text-sm font-medium text-navy">
                 No activity yet
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Upload a document or questionnaire to get things moving.
               </p>
             </div>
@@ -478,13 +479,13 @@ export default function DashboardPage() {
                 <li key={item.key}>
                   <Link
                     href={item.href}
-                    className="group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-gray-50"
+                    className="group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-surface-tint"
                   >
                     <span
                       className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                         item.kind === "document"
-                          ? "bg-blue-50 text-blue-600"
-                          : "bg-primary-50 text-primary-600"
+                          ? "bg-sky text-cobalt"
+                          : "bg-mint text-primary-700"
                       }`}
                     >
                       <svg
@@ -511,26 +512,16 @@ export default function DashboardPage() {
                       </svg>
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-gray-900 transition-colors group-hover:text-primary-700">
+                      <span className="block truncate text-sm font-medium text-navy transition-colors group-hover:text-primary-700">
                         {item.title}
                       </span>
-                      <span className="block text-xs text-gray-500">
+                      <span className="block text-xs text-muted-foreground">
                         {formatDate(item.created_at)}
                       </span>
                     </span>
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                        {
-                          gray: "bg-gray-100 text-gray-600",
-                          blue: "bg-blue-50 text-blue-700",
-                          green: "bg-green-50 text-green-700",
-                          amber: "bg-amber-50 text-amber-700",
-                          red: "bg-red-50 text-red-700",
-                        }[toneFor(item.status)]
-                      }`}
-                    >
+                    <Badge tone={toneFor(item.status)}>
                       {labelFor(item.status)}
-                    </span>
+                    </Badge>
                   </Link>
                 </li>
               ))}
