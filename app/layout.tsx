@@ -16,6 +16,19 @@ export const metadata: Metadata = {
   title: "Trustloop — Powered by Rivox",
   description:
     "Answer customer security questionnaires in minutes, not weeks. Trustloop drafts answers from your own security documents using AI.",
+  openGraph: {
+    title: "Trustloop — Powered by Rivox",
+    description:
+      "Answer customer security questionnaires in minutes, not weeks. Trustloop drafts answers from your own security documents using AI.",
+    siteName: "Trustloop",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Trustloop — Powered by Rivox",
+    description:
+      "Answer customer security questionnaires in minutes, not weeks. Trustloop drafts answers from your own security documents using AI.",
+  },
 };
 
 export default function RootLayout({

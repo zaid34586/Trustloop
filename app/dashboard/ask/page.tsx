@@ -124,7 +124,7 @@ export default function AskPage() {
               rows={4}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="e.g. Do we have a documented incident response plan?"
-              className="w-full resize-none rounded-xl border border-border px-3.5 py-2.5 text-sm text-navy placeholder-muted-foreground transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="app-textarea"
             />
             <div className="mt-3 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
