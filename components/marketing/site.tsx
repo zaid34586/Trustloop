@@ -61,7 +61,7 @@ export const pricingPlans = [
       "25 questionnaires per month",
       "100 documents",
       "Everything in Starter",
-      "Priority support",
+      "Priority support — Coming soon",
     ],
   },
   {
@@ -75,8 +75,8 @@ export const pricingPlans = [
       "Unlimited questionnaires",
       "500 documents",
       "Everything in Growth",
-      "Onboarding call",
-      "Dedicated support",
+      "Onboarding call — Coming soon",
+      "Dedicated support — Coming soon",
     ],
   },
 ];

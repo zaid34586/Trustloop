@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { BRAND_NAME } from "@/components/marketing/brand";
 
 const navItems = [
   {
@@ -190,7 +191,7 @@ export default function DashboardLayout({
               />
             </svg>
           </span>
-          Trustloop
+          {BRAND_NAME}
         </Link>
         <NavList pathname={pathname} email={email} onNavigate={() => {}} />
       </aside>
@@ -219,7 +220,7 @@ export default function DashboardLayout({
               />
             </svg>
           </span>
-          Trustloop
+          {BRAND_NAME}
         </Link>
         <button
           onClick={() => setMenuOpen((open) => !open)}
