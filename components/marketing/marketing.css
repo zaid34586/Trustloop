@@ -1,0 +1,432 @@
+/* Trustloop marketing pages — design styles scoped under .tl-marketing so they never touch dashboard, login or signup. */
+
+.tl-marketing {
+  --radius: 0.5rem;
+  --background: oklch(0.995 0.003 242);
+  --foreground: oklch(0.19 0.026 258);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.026 258);
+  --primary: oklch(0.42 0.15 264);
+  --primary-foreground: oklch(0.99 0.002 247);
+  --muted-foreground: oklch(0.46 0.022 254);
+  --border: oklch(0.915 0.018 244);
+  --ring: oklch(0.62 0.13 260);
+  --navy: oklch(0.24 0.045 258);
+  --blue: oklch(0.49 0.16 262);
+  --cobalt: oklch(0.93 0.035 251);
+  --green: oklch(0.5 0.105 156);
+  --sky: oklch(0.96 0.026 230);
+  --shadow-soft: 0 18px 54px -31px oklch(0.26 0.08 263 / 25%);
+  --shadow-card: 0 3px 12px -6px oklch(0.27 0.06 259 / 11%);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tl-marketing ::selection { background: var(--cobalt); color: var(--navy); }
+.tl-marketing a:focus-visible, .tl-marketing button:focus-visible { outline: 3px solid color-mix(in oklab, var(--ring) 72%, transparent); outline-offset: 3px; }
+.tl-marketing section[id] { scroll-margin-top: 88px; }
+
+.tl-marketing .m-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+}
+.tl-marketing .m-btn svg { flex: 0 0 auto; }
+
+.tl-marketing .site-shell { width: min(100% - 64px, 1160px); margin-inline: auto; }
+.tl-marketing .site-header { position: sticky; z-index: 30; top: 0; background: color-mix(in oklab, var(--background) 90%, transparent); backdrop-filter: blur(18px); border-bottom: 1px solid color-mix(in oklab, var(--border) 78%, transparent); }
+.tl-marketing .nav-inner { height: 72px; display: flex; align-items: center; justify-content: space-between; }
+.tl-marketing .brand { display: inline-flex; align-items: center; gap: 9px; color: var(--navy); font-size: 20px; font-weight: 750; letter-spacing: 0; }
+.tl-marketing .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; color: var(--primary); }
+.tl-marketing .brand-period { color: var(--primary); }
+.tl-marketing .desktop-nav { position: absolute; left: 50%; transform: translateX(-50%); }
+.tl-marketing .nav-pill { display: flex; align-items: center; gap: 3px; padding: 5px; background: oklch(0.97 0.008 245); border: 1px solid var(--border); border-radius: 999px; }
+.tl-marketing .nav-pill a { padding: 9px 14px; color: var(--muted-foreground); font-size: 12px; font-weight: 550; border-radius: 999px; transition: color 150ms ease, background 150ms ease; }
+.tl-marketing .nav-pill a:hover { background: var(--card); color: var(--foreground); }
+.tl-marketing .nav-actions { display: flex; align-items: center; gap: 19px; }
+.tl-marketing .login-link { color: var(--muted-foreground); font-size: 12px; font-weight: 550; }
+.tl-marketing .login-link:hover, .tl-marketing .text-link:hover { color: var(--primary); }
+.tl-marketing .button-dark { background: var(--navy); color: var(--primary-foreground); box-shadow: 0 3px 10px -4px oklch(0.2 0.05 258 / 30%); transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease; }
+.tl-marketing .button-dark:hover { transform: translateY(-2px); background: oklch(0.3 0.055 260); box-shadow: 0 7px 18px -8px oklch(0.2 0.06 260 / 38%); }
+.tl-marketing .nav-cta { height: 39px; padding-inline: 15px; font-size: 12px; }
+.tl-marketing .nav-cta svg { width: 14px; height: 14px; }
+.tl-marketing .mobile-menu-toggle, .tl-marketing .mobile-nav { display: none; }
+
+.tl-marketing .hero-stage { position: relative; overflow: hidden; padding: 70px 0 40px; }
+.tl-marketing .hero-glow { position: absolute; z-index: -1; width: min(1140px, 110vw); height: 650px; top: -310px; left: 50%; transform: translateX(-50%); background: radial-gradient(ellipse at center, oklch(0.9 0.075 243 / 44%), oklch(0.96 0.035 237 / 23%) 40%, transparent 72%); pointer-events: none; }
+.tl-marketing .hero-content { text-align: center; }
+.tl-marketing .hero-badge { display: inline-flex; gap: 8px; align-items: center; border: 1px solid oklch(0.87 0.047 247); background: color-mix(in oklab, white 76%, var(--sky)); color: var(--navy); border-radius: 999px; padding: 8px 13px; font-size: 11px; font-weight: 550; }
+.tl-marketing .hero-badge svg { width: 14px; height: 14px; color: var(--primary); }
+.tl-marketing .hero-content h1 { max-width: 890px; margin: 26px auto 0; font-size: clamp(58px, 6.5vw, 86px); line-height: 1.045; letter-spacing: 0; font-weight: 800; color: var(--navy); }
+.tl-marketing .hero-content h1 span { color: var(--primary); }
+.tl-marketing .hero-copy { max-width: 610px; margin: 19px auto 0; color: var(--muted-foreground); font-size: 17px; line-height: 1.8; }
+.tl-marketing .hero-actions { display: flex; align-items: center; justify-content: center; gap: 25px; margin-top: 26px; }
+.tl-marketing .hero-actions .button-dark { min-height: 46px; padding: 0 20px; }
+.tl-marketing .hero-actions svg, .tl-marketing .text-link svg { width: 15px; height: 15px; }
+.tl-marketing .text-link { display: inline-flex; gap: 8px; align-items: center; color: var(--navy); font-size: 13px; font-weight: 600; transition: color 140ms ease; }
+.tl-marketing .hero-checks { display: grid; grid-template-columns: repeat(4, max-content); justify-content: center; column-gap: 25px; row-gap: 12px; margin: 35px auto 0; }
+.tl-marketing .hero-checks > div { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 11px; font-weight: 500; }
+.tl-marketing .hero-checks svg { width: 14px; height: 14px; color: var(--green); }
+.tl-marketing .mockup-wrap { max-width: 1160px; margin: 50px auto 0; text-align: left; }
+.tl-marketing .mockup-window { overflow: hidden; border: 1px solid oklch(0.85 0.025 249); background: var(--card); border-radius: 9px; box-shadow: 0 28px 72px -42px oklch(0.22 0.07 260 / 38%), 0 5px 16px -9px oklch(0.24 0.06 257 / 20%); }
+.tl-marketing .window-bar { height: 43px; display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; padding: 0 15px; border-bottom: 1px solid var(--border); background: oklch(0.987 0.004 245); }
+.tl-marketing .window-dots { display: flex; gap: 5px; }
+.tl-marketing .window-dots i { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.83 0.018 255); }
+.tl-marketing .window-dots i:first-child { background: oklch(0.75 0.11 26); }
+.tl-marketing .window-dots i:nth-child(2) { background: oklch(0.81 0.12 90); }
+.tl-marketing .window-dots i:nth-child(3) { background: oklch(0.72 0.12 156); }
+.tl-marketing .window-address { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted-foreground); font-size: 11px; }
+.tl-marketing .window-address svg { width: 12px; height: 12px; }
+.tl-marketing .window-avatar { justify-self: end; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--navy); background: var(--cobalt); font-size: 9px; font-weight: 700; }
+.tl-marketing .product-layout { min-height: 367px; display: grid; grid-template-columns: 174px 1fr; }
+.tl-marketing .product-sidebar { position: relative; padding: 19px 11px; color: oklch(0.86 0.025 245); background: var(--navy); }
+.tl-marketing .sidebar-logo { display: flex; align-items: center; gap: 8px; padding: 0 8px 24px; color: oklch(0.98 0.004 245); font-size: 14px; font-weight: 650; }
+.tl-marketing .sidebar-logo span { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid oklch(1 0 0 / 20%); border-radius: 6px; color: oklch(0.8 0.08 235); }
+.tl-marketing .sidebar-logo span svg { width: 17px; height: 17px; }
+.tl-marketing .workspace-label { padding: 0 9px; margin-bottom: 8px; color: oklch(0.68 0.022 254); font-size: 10px; font-weight: 600; letter-spacing: 0; }
+.tl-marketing .sidebar-item { display: flex; align-items: center; gap: 9px; padding: 9px; margin: 2px 0; border-radius: 5px; color: oklch(0.82 0.022 246); font-size: 12px; }
+.tl-marketing .sidebar-item svg { width: 15px; height: 15px; }
+.tl-marketing .sidebar-item.active { color: oklch(0.98 0.003 245); background: oklch(1 0 0 / 12%); }
+.tl-marketing .sidebar-item.active svg { color: oklch(0.78 0.09 236); }
+.tl-marketing .sidebar-account { position: absolute; bottom: 0; left: 11px; right: 11px; display: flex; align-items: center; gap: 8px; padding: 12px 3px; border-top: 1px solid oklch(1 0 0 / 12%); color: oklch(0.93 0.012 245); font-size: 11px; }
+.tl-marketing .sidebar-account small { display: block; margin-top: 3px; color: oklch(0.69 0.02 247); font-size: 10px; }
+.tl-marketing .sidebar-account > svg { margin-left: auto; width: 13px; height: 13px; }
+.tl-marketing .sidebar-account-avatar { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 5px; background: oklch(0.46 0.095 240); font-size: 9px; }
+.tl-marketing .product-main { min-width: 0; padding: 21px 24px 25px; }
+.tl-marketing .mock-breadcrumb { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 11px; }
+.tl-marketing .mock-breadcrumb svg { width: 12px; height: 12px; }
+.tl-marketing .mock-breadcrumb span { color: var(--foreground); }
+.tl-marketing .mock-title-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0; }
+.tl-marketing .mock-title { color: var(--navy); font-size: 19px; font-weight: 650; }
+.tl-marketing .mock-subtitle { margin-top: 4px; color: var(--muted-foreground); font-size: 11px; }
+.tl-marketing .mock-export { height: 31px; padding-inline: 10px; font-size: 11px; background: var(--primary); color: var(--primary-foreground); border: 0; }
+.tl-marketing .mock-export svg { width: 13px; height: 13px; }
+.tl-marketing .review-progress { padding: 12px 0 16px; border-top: 1px solid var(--border); }
+.tl-marketing .progress-label { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: 11px; }
+.tl-marketing .progress-label b { color: var(--navy); font-weight: 600; }
+.tl-marketing .progress-track { height: 4px; margin-top: 8px; overflow: hidden; background: oklch(0.94 0.012 247); border-radius: 99px; }
+.tl-marketing .progress-track span { display: block; width: 50%; height: 100%; background: var(--primary); border-radius: inherit; }
+.tl-marketing .table-scroll { overflow-x: auto; }
+.tl-marketing .review-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.tl-marketing .review-table th { padding: 9px 7px; background: oklch(0.98 0.004 246); color: var(--muted-foreground); font-size: 9px; font-weight: 600; text-align: left; }
+.tl-marketing .review-table td { padding: 10px 7px; vertical-align: top; border-bottom: 1px solid oklch(0.94 0.01 245); color: var(--foreground); font-size: 12px; line-height: 1.5; }
+.tl-marketing .review-table th:nth-child(1) { width: 24%; }
+.tl-marketing .review-table th:nth-child(2) { width: 44%; }
+.tl-marketing .review-table th:nth-child(3) { width: 14%; }
+.tl-marketing .review-table th:nth-child(4) { width: 18%; }
+.tl-marketing .question-cell { font-weight: 550; }
+.tl-marketing .answer-cell, .tl-marketing .not-found-answer { color: var(--muted-foreground) !important; }
+.tl-marketing .not-found-answer { font-style: italic; }
+.tl-marketing .mock-source { display: flex; align-items: center; gap: 4px; margin-top: 5px; color: var(--primary); font-size: 10px; font-style: normal; font-weight: 550; }
+.tl-marketing .mock-source svg { width: 10px; height: 10px; }
+.tl-marketing .confidence, .tl-marketing .status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 6px; border-radius: 99px; white-space: nowrap; font-size: 9px; font-weight: 550; }
+.tl-marketing .confidence i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.tl-marketing .confidence-high { color: oklch(0.44 0.1 155); background: oklch(0.96 0.025 157); }
+.tl-marketing .confidence-medium { color: oklch(0.56 0.1 84); background: oklch(0.97 0.035 91); }
+.tl-marketing .confidence-none { color: oklch(0.52 0.015 250); background: oklch(0.96 0.008 249); }
+.tl-marketing .status-approved { color: oklch(0.44 0.1 155); background: oklch(0.96 0.025 157); }
+.tl-marketing .status-drafted { color: oklch(0.47 0.13 255); background: oklch(0.955 0.026 251); }
+.tl-marketing .status-not-found { color: oklch(0.52 0.015 250); background: oklch(0.96 0.008 249); }
+.tl-marketing .mockup-caption { margin: 10px 0 0; color: var(--muted-foreground); font-size: 11px; text-align: center; }
+
+.tl-marketing .section-band { padding: 91px 0; }
+.tl-marketing .problem-band { padding-top: 75px; background: oklch(0.975 0.008 243); border-block: 1px solid oklch(0.94 0.012 242); }
+.tl-marketing .eyebrow { display: flex; align-items: center; gap: 8px; color: var(--primary); font-size: 10px; font-weight: 650; letter-spacing: 0; }
+.tl-marketing .eyebrow > span { width: 17px; height: 1px; background: var(--primary); }
+.tl-marketing .section-heading h2, .tl-marketing .trust-copy h2, .tl-marketing .cta-inner h2 { margin: 14px 0 0; color: var(--navy); font-size: 37px; line-height: 1.17; letter-spacing: 0; font-weight: 700; }
+.tl-marketing .section-heading > p { max-width: 540px; margin: 12px 0 0; color: var(--muted-foreground); font-size: 15px; line-height: 1.75; }
+.tl-marketing .section-heading-centered { text-align: center; }
+.tl-marketing .section-heading-centered .eyebrow { justify-content: center; }
+.tl-marketing .section-heading-centered > p { margin-inline: auto; }
+.tl-marketing .problem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 35px; margin-top: 48px; }
+.tl-marketing .problem-item { position: relative; min-height: 190px; padding: 22px 23px; border-top: 1px solid var(--border); }
+.tl-marketing .problem-number { position: absolute; right: 18px; top: 20px; color: oklch(0.62 0.022 250); font-size: 11px; font-weight: 600; }
+.tl-marketing .problem-item > svg { width: 21px; height: 21px; color: var(--primary); }
+.tl-marketing .problem-item h3, .tl-marketing .feature-item h3 { margin: 18px 0 0; color: var(--navy); font-size: 15px; line-height: 1.4; font-weight: 650; }
+.tl-marketing .problem-item p, .tl-marketing .feature-item p { max-width: 300px; margin: 8px 0 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.75; }
+.tl-marketing .feature-band { background: var(--card); }
+.tl-marketing .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 49px; border-top: 1px solid var(--border); border-left: 1px solid var(--border); }
+.tl-marketing .feature-item { position: relative; min-height: 184px; padding: 23px 22px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.tl-marketing .feature-icon { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 8px; background: var(--sky); color: var(--primary); }
+.tl-marketing .feature-icon svg { width: 17px; height: 17px; }
+.tl-marketing .feature-index { position: absolute; top: 27px; right: 21px; color: oklch(0.62 0.02 251); font-size: 10px; }
+.tl-marketing .feature-item h3 { margin-top: 16px; font-size: 14px; }
+.tl-marketing .feature-item p { margin-top: 6px; }
+.tl-marketing .how-band { background: oklch(0.97 0.014 238); border-block: 1px solid oklch(0.94 0.018 240); }
+.tl-marketing .how-layout { display: grid; grid-template-columns: 0.85fr 1.15fr; align-items: start; gap: 88px; }
+.tl-marketing .how-layout .section-heading h2 { max-width: 400px; }
+.tl-marketing .steps-list { border-top: 1px solid oklch(0.88 0.025 242); }
+.tl-marketing .step-row { display: grid; grid-template-columns: 45px 1fr 18px; align-items: start; gap: 15px; padding: 22px 0; border-bottom: 1px solid oklch(0.88 0.025 242); }
+.tl-marketing .step-number { color: var(--primary); font-size: 13px; font-weight: 650; }
+.tl-marketing .step-row h3 { margin: 0; color: var(--navy); font-size: 15px; font-weight: 650; }
+.tl-marketing .step-row p { margin: 7px 0 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.7; }
+.tl-marketing .step-row > svg { width: 15px; height: 15px; margin-top: 1px; color: var(--primary); }
+.tl-marketing .trust-band { padding: 76px 0; background: var(--navy); color: oklch(0.96 0.008 244); }
+.tl-marketing .trust-layout { display: grid; grid-template-columns: 0.92fr 1.08fr; align-items: center; gap: 90px; }
+.tl-marketing .trust-copy .eyebrow { color: oklch(0.78 0.08 236); }
+.tl-marketing .trust-copy .eyebrow > span { background: currentColor; }
+.tl-marketing .trust-copy h2 { margin-top: 18px; color: oklch(0.98 0.003 246); font-size: 40px; }
+.tl-marketing .trust-copy > p { max-width: 410px; margin: 13px 0 0; color: oklch(0.8 0.025 245); font-size: 14px; line-height: 1.8; }
+.tl-marketing .trust-points { display: grid; gap: 0; }
+.tl-marketing .trust-points > div { display: flex; align-items: center; gap: 14px; padding: 15px 0; border-bottom: 1px solid oklch(1 0 0 / 14%); color: oklch(0.93 0.01 245); font-size: 13px; line-height: 1.6; }
+.tl-marketing .trust-points > div:first-child { border-top: 1px solid oklch(1 0 0 / 14%); }
+.tl-marketing .trust-points svg { width: 18px; height: 18px; flex: 0 0 auto; color: oklch(0.75 0.09 220); }
+.tl-marketing .pricing-band { background: oklch(0.975 0.007 242); border-bottom: 1px solid var(--border); }
+.tl-marketing .billing-control { display: flex; align-items: center; justify-content: center; gap: 4px; width: fit-content; margin: 25px auto 32px; padding: 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
+.tl-marketing .billing-control button { min-height: 33px; padding: 0 13px; border: 0; border-radius: 999px; background: transparent; color: var(--muted-foreground); font-family: inherit; font-size: 11px; font-weight: 550; cursor: pointer; }
+.tl-marketing .billing-control button.selected { background: var(--navy); color: oklch(0.99 0 0); }
+.tl-marketing .billing-control button span { margin-left: 5px; color: var(--green); font-size: 10px; }
+.tl-marketing .billing-control button.selected span { color: oklch(0.79 0.1 155); }
+.tl-marketing .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); align-items: stretch; gap: 15px; }
+.tl-marketing .price-plan { position: relative; padding: 25px 22px 23px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: var(--shadow-card); }
+.tl-marketing .price-plan-popular { border: 1px solid oklch(0.61 0.12 258); box-shadow: 0 10px 28px -18px oklch(0.37 0.12 263 / 35%); }
+.tl-marketing .popular-label { position: absolute; top: -11px; right: 18px; padding: 5px 9px; border-radius: 99px; background: var(--primary); color: oklch(0.99 0 0); font-size: 9px; font-weight: 650; }
+.tl-marketing .plan-name { color: var(--navy); font-size: 14px; font-weight: 650; }
+.tl-marketing .plan-description { min-height: 36px; margin: 7px 0 0; color: var(--muted-foreground); font-size: 11px; line-height: 1.6; }
+.tl-marketing .plan-price { display: flex; align-items: baseline; margin-top: 20px; color: var(--navy); font-size: 36px; font-weight: 700; letter-spacing: 0; }
+.tl-marketing .currency { align-self: flex-start; margin: 5px 3px 0 0; font-size: 15px; font-weight: 550; }
+.tl-marketing .per-month { margin-left: 5px; color: var(--muted-foreground); font-size: 11px; font-weight: 450; letter-spacing: 0; }
+.tl-marketing .billing-note { min-height: 14px; margin: 2px 0 17px; color: var(--muted-foreground); font-size: 10px; }
+.tl-marketing .plan-cta { width: 100%; height: 39px; font-size: 11px; }
+.tl-marketing .plan-cta svg { width: 14px; height: 14px; }
+.tl-marketing .plan-cta-light { border: 1px solid var(--border); background: var(--card); color: var(--navy); transition: border 140ms ease, background 140ms ease; }
+.tl-marketing .plan-cta-light:hover { border-color: var(--ring); background: var(--sky); }
+.tl-marketing .plan-features-title { padding-top: 21px; margin-top: 18px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 9px; font-weight: 650; }
+.tl-marketing .price-plan ul { display: grid; gap: 10px; padding: 0; margin: 14px 0 0; list-style: none; }
+.tl-marketing .price-plan li { display: flex; align-items: flex-start; gap: 8px; color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+.tl-marketing .price-plan li svg { width: 13px; height: 13px; flex: 0 0 auto; color: var(--green); }
+.tl-marketing .comparison-wrap { margin-top: 50px; }
+.tl-marketing .comparison-wrap > h3 { margin: 0 0 15px; color: var(--navy); font-size: 16px; font-weight: 650; }
+.tl-marketing .comparison-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 7px; background: var(--card); }
+.tl-marketing .comparison-table { width: 100%; border-collapse: collapse; text-align: left; }
+.tl-marketing .comparison-table th, .tl-marketing .comparison-table td { padding: 12px 15px; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 11px; font-weight: 450; white-space: nowrap; }
+.tl-marketing .comparison-table thead th { color: var(--navy); background: oklch(0.98 0.006 244); font-weight: 650; }
+.tl-marketing .comparison-table tbody th { color: var(--navy); font-weight: 550; }
+.tl-marketing .comparison-table tr:last-child th, .tl-marketing .comparison-table tr:last-child td { border-bottom: none; }
+.tl-marketing .pricing-note { margin: 12px 0 0; color: var(--muted-foreground); font-size: 10px; }
+.tl-marketing .faq-band { background: var(--card); }
+.tl-marketing .faq-layout { display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 80px; align-items: start; }
+.tl-marketing .faq-layout .section-heading h2 { max-width: 350px; font-size: 34px; }
+.tl-marketing .faq-list { border-top: 1px solid var(--border); }
+.tl-marketing .faq-item { border-bottom: 1px solid var(--border); }
+.tl-marketing .faq-trigger { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; min-height: 55px; padding: 15px 0; border: 0; background: transparent; color: var(--navy); font-family: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
+.tl-marketing .faq-trigger svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--primary); transition: transform 220ms ease; }
+.tl-marketing .faq-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+.tl-marketing .faq-content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 240ms ease; }
+.tl-marketing .faq-content.open { grid-template-rows: 1fr; }
+.tl-marketing .faq-content > div { overflow: hidden; }
+.tl-marketing .faq-content p { max-width: 600px; padding: 0 25px 18px 0; margin: 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.8; }
+.tl-marketing .cta-band { padding: 47px 0; background: var(--primary); color: var(--primary-foreground); }
+.tl-marketing .cta-inner { display: flex; align-items: center; justify-content: space-between; gap: 40px; }
+.tl-marketing .cta-inner .eyebrow { color: oklch(0.89 0.04 238); }
+.tl-marketing .cta-inner .eyebrow > span { background: currentColor; }
+.tl-marketing .cta-inner h2 { max-width: 605px; margin-top: 12px; color: oklch(0.99 0 0); font-size: 31px; }
+.tl-marketing .button-light { flex: 0 0 auto; min-height: 44px; padding: 0 18px; background: oklch(0.99 0 0); color: var(--navy); font-size: 12px; transition: transform 160ms ease, background 160ms ease; }
+.tl-marketing .button-light:hover { transform: translateY(-2px); background: oklch(0.95 0.02 241); }
+.tl-marketing .button-light svg { width: 15px; height: 15px; }
+
+.tl-marketing .site-footer { padding: 47px 0 19px; background: oklch(0.19 0.039 258); color: oklch(0.9 0.015 245); }
+.tl-marketing .footer-top { display: grid; grid-template-columns: 1.55fr repeat(3, 0.7fr); gap: 40px; padding-bottom: 37px; }
+.tl-marketing .footer-brand { color: oklch(0.98 0.003 245); }
+.tl-marketing .footer-brand .brand-mark { color: oklch(0.76 0.09 230); }
+.tl-marketing .footer-brand .brand-period { color: oklch(0.76 0.09 230); }
+.tl-marketing .footer-brand-block > p { max-width: 245px; margin: 13px 0 0; color: oklch(0.75 0.025 246); font-size: 11px; line-height: 1.7; }
+.tl-marketing .footer-brand-block .powered-by { display: flex; align-items: center; gap: 4px; margin-top: 20px; }
+.tl-marketing .powered-by a { display: inline-flex; align-items: center; gap: 3px; color: oklch(0.92 0.015 245); font-weight: 600; }
+.tl-marketing .powered-by svg { width: 11px; height: 11px; }
+.tl-marketing .footer-column { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.tl-marketing .footer-column h3 { margin: 5px 0 5px; color: oklch(0.97 0.006 245); font-size: 11px; font-weight: 600; }
+.tl-marketing .footer-column a { color: oklch(0.74 0.022 245); font-size: 10px; transition: color 140ms ease; }
+.tl-marketing .footer-column a:hover, .tl-marketing .footer-bottom a:hover { color: oklch(0.96 0.01 242); }
+.tl-marketing .footer-bottom { display: flex; justify-content: space-between; gap: 20px; padding-top: 16px; border-top: 1px solid oklch(1 0 0 / 14%); color: oklch(0.7 0.02 245); font-size: 9px; }
+.tl-marketing .footer-dot { padding-inline: 5px; }
+
+.tl-marketing .inner-page { min-height: 70vh; padding-top: 61px; }
+.tl-marketing .inner-intro { max-width: 720px; margin-bottom: 39px; }
+.tl-marketing .inner-intro h1 { max-width: 670px; margin: 17px 0 0; color: var(--navy); font-size: 46px; line-height: 1.13; letter-spacing: 0; font-weight: 700; }
+.tl-marketing .inner-intro > p { max-width: 620px; margin: 14px 0 0; color: var(--muted-foreground); font-size: 15px; line-height: 1.8; }
+.tl-marketing .editorial-content { max-width: 720px; padding-bottom: 66px; }
+.tl-marketing .editorial-content h2 { margin: 30px 0 9px; color: var(--navy); font-size: 18px; font-weight: 650; }
+.tl-marketing .editorial-content h2:first-child { margin-top: 0; }
+.tl-marketing .editorial-content p { margin: 0 0 16px; color: var(--muted-foreground); font-size: 14px; line-height: 1.9; }
+.tl-marketing .last-updated { margin-top: 30px !important; color: var(--muted-foreground) !important; font-size: 11px !important; }
+.tl-marketing .about-rivox a { display: inline-flex; align-items: center; gap: 4px; color: var(--primary); font-weight: 600; }
+.tl-marketing .about-rivox svg { width: 13px; height: 13px; }
+.tl-marketing .contact-layout { display: grid; grid-template-columns: 1fr; gap: 30px; max-width: 640px; padding: 25px 0 45px; border-top: 1px solid var(--border); }
+.tl-marketing .contact-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 8px; background: var(--sky); color: var(--primary); }
+.tl-marketing .contact-icon svg { width: 18px; height: 18px; }
+.tl-marketing .contact-details h2 { margin: 17px 0 8px; color: var(--navy); font-size: 17px; }
+.tl-marketing .contact-details > a { display: inline-flex; align-items: center; gap: 4px; color: var(--primary); font-size: 13px; font-weight: 600; }
+.tl-marketing .contact-details > a svg { width: 13px; height: 13px; }
+.tl-marketing .contact-details > p { color: var(--muted-foreground); font-size: 12px; line-height: 1.75; }
+.tl-marketing .security-content { padding-bottom: 69px; }
+.tl-marketing .security-list { display: grid; gap: 0; padding: 0; margin: 15px 0 35px; list-style: none; border-top: 1px solid var(--border); }
+.tl-marketing .security-list li { display: flex; gap: 12px; align-items: flex-start; padding: 15px 0; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 13px; line-height: 1.75; }
+.tl-marketing .security-list svg { width: 17px; height: 17px; flex: 0 0 auto; margin-top: 1px; color: var(--primary); }
+.tl-marketing .honesty-note { margin-top: 27px; padding: 18px 20px; border-left: 2px solid var(--primary); background: var(--sky); }
+.tl-marketing .honesty-note h2 { margin: 0 0 8px; font-size: 14px; }
+.tl-marketing .honesty-note p { margin-bottom: 0; }
+.tl-marketing .draft-notice { max-width: 720px; padding: 11px 14px; margin: 0 0 25px; border: 1px solid oklch(0.87 0.07 91); border-radius: 5px; background: oklch(0.98 0.03 94); color: oklch(0.43 0.075 75); font-size: 11px; line-height: 1.6; }
+.tl-marketing .legal-content { padding-bottom: 70px; }
+.tl-marketing .legal-content section { margin-bottom: 25px; }
+.tl-marketing .inner-faq { padding: 74px 0; background: var(--card); }
+
+.tl-marketing .not-found-page { min-height: 100vh; display: grid; place-items: center; padding: 70px 0; text-align: center; }
+.tl-marketing .not-found-page .eyebrow { justify-content: center; }
+.tl-marketing .nf-inner h1 { margin: 17px 0 0; color: var(--navy); font-size: clamp(40px, 5vw, 56px); line-height: 1.1; font-weight: 750; }
+.tl-marketing .nf-inner > p { max-width: 460px; margin: 15px auto 0; color: var(--muted-foreground); font-size: 15px; line-height: 1.8; }
+.tl-marketing .nf-cta { min-height: 46px; margin-top: 27px; padding: 0 20px; }
+.tl-marketing .nf-cta svg { width: 15px; height: 15px; }
+
+@media (max-width: 900px) {
+  .tl-marketing .site-shell { width: min(100% - 44px, 720px); }
+  .tl-marketing .nav-pill a { padding-inline: 10px; }
+  .tl-marketing .hero-stage { padding-top: 61px; }
+  .tl-marketing .hero-content h1 { max-width: 750px; font-size: 71px; }
+  .tl-marketing .hero-checks { grid-template-columns: repeat(2, max-content); column-gap: 27px; }
+  .tl-marketing .product-layout { grid-template-columns: 147px 1fr; }
+  .tl-marketing .product-main { padding-inline: 17px; }
+  .tl-marketing .review-table td { font-size: 10px; }
+  .tl-marketing .how-layout, .tl-marketing .trust-layout { gap: 48px; }
+  .tl-marketing .faq-layout { gap: 48px; }
+  .tl-marketing .footer-top { grid-template-columns: 1.2fr repeat(3, 0.72fr); gap: 23px; }
+}
+@media (max-width: 680px) {
+  .tl-marketing section[id] { scroll-margin-top: 70px; }
+  .tl-marketing .site-shell { width: min(100% - 36px, 520px); }
+  .tl-marketing .nav-inner { height: 64px; }
+  .tl-marketing .brand { font-size: 18px; }
+  .tl-marketing .brand-mark { width: 27px; height: 27px; }
+  .tl-marketing .desktop-nav, .tl-marketing .login-link { display: none; }
+  .tl-marketing .nav-actions { gap: 9px; }
+  .tl-marketing .nav-cta { height: 36px; padding-inline: 11px; font-size: 10px; }
+  .tl-marketing .nav-cta svg { width: 12px; height: 12px; }
+  .tl-marketing .mobile-menu-toggle { display: inline-flex; align-items: center; justify-content: center; width: 35px; height: 35px; padding: 0; border: 0; background: transparent; color: var(--navy); cursor: pointer; }
+  .tl-marketing .mobile-menu-toggle svg { width: 18px; height: 18px; }
+  .tl-marketing .mobile-nav { display: flex; flex-direction: column; gap: 0; padding: 0 18px 13px; border-top: 1px solid var(--border); background: var(--background); }
+  .tl-marketing .mobile-nav a { display: flex; align-items: center; justify-content: space-between; padding: 12px 2px; border-bottom: 1px solid var(--border); color: var(--navy); font-size: 13px; font-weight: 550; }
+  .tl-marketing .mobile-nav svg { width: 14px; height: 14px; color: var(--muted-foreground); }
+  .tl-marketing .mobile-nav .mobile-login { color: var(--primary); }
+  .tl-marketing .hero-stage { padding-top: 45px; }
+  .tl-marketing .hero-glow { top: -220px; height: 490px; }
+  .tl-marketing .hero-badge { max-width: 100%; padding: 7px 10px; font-size: 10px; }
+  .tl-marketing .hero-content h1 { max-width: 520px; margin-top: 22px; font-size: 54px; line-height: 1.08; }
+  .tl-marketing .hero-copy { max-width: 460px; margin-top: 15px; font-size: 14px; line-height: 1.75; }
+  .tl-marketing .hero-actions { gap: 16px; margin-top: 21px; }
+  .tl-marketing .hero-actions .button-dark { min-height: 42px; padding-inline: 14px; font-size: 12px; }
+  .tl-marketing .text-link { font-size: 11px; }
+  .tl-marketing .hero-checks { grid-template-columns: 1fr 1fr; gap: 13px 10px; max-width: 460px; margin-top: 27px; text-align: left; }
+  .tl-marketing .hero-checks > div { align-items: flex-start; font-size: 10px; line-height: 1.5; }
+  .tl-marketing .hero-checks svg { flex: 0 0 auto; }
+  .tl-marketing .mockup-wrap { width: calc(100% + 2px); margin-top: 35px; margin-inline: -1px; }
+  .tl-marketing .mockup-window { border-radius: 7px; }
+  .tl-marketing .window-bar { height: 36px; grid-template-columns: 1fr 2fr 1fr; padding-inline: 10px; }
+  .tl-marketing .window-address { font-size: 9px; }
+  .tl-marketing .window-address svg { width: 9px; height: 9px; }
+  .tl-marketing .window-avatar { width: 20px; height: 20px; font-size: 8px; }
+  .tl-marketing .product-layout { display: block; min-height: 0; }
+  .tl-marketing .product-sidebar { display: flex; align-items: center; gap: 8px; height: 45px; padding: 6px 9px; overflow: hidden; }
+  .tl-marketing .sidebar-logo { flex: 0 0 auto; gap: 5px; padding: 0 5px 0 0; font-size: 10px; }
+  .tl-marketing .sidebar-logo span { width: 21px; height: 21px; }
+  .tl-marketing .workspace-label, .tl-marketing .sidebar-account { display: none; }
+  .tl-marketing .sidebar-item { flex: 0 0 auto; gap: 5px; padding: 7px 6px; margin: 0; font-size: 8px; }
+  .tl-marketing .sidebar-item svg { width: 12px; height: 12px; }
+  .tl-marketing .product-main { padding: 14px 11px 15px; }
+  .tl-marketing .mock-breadcrumb { font-size: 9px; }
+  .tl-marketing .mock-title-line { margin: 11px 0; }
+  .tl-marketing .mock-title { font-size: 15px; }
+  .tl-marketing .mock-subtitle { font-size: 9px; }
+  .tl-marketing .mock-export { height: 27px; padding-inline: 7px; font-size: 9px; }
+  .tl-marketing .mock-export svg { width: 11px; height: 11px; }
+  .tl-marketing .review-table { min-width: 590px; }
+  .tl-marketing .review-table th { padding: 8px 6px; font-size: 8px; }
+  .tl-marketing .review-table td { padding: 9px 6px; font-size: 10px; }
+  .tl-marketing .confidence, .tl-marketing .status { font-size: 8px; }
+  .tl-marketing .mockup-caption { font-size: 10px; }
+  .tl-marketing .section-band { padding: 62px 0; }
+  .tl-marketing .problem-band { padding-top: 57px; }
+  .tl-marketing .section-heading h2 { font-size: 30px; }
+  .tl-marketing .section-heading > p { font-size: 13px; }
+  .tl-marketing .problem-grid { grid-template-columns: 1fr; gap: 0; margin-top: 31px; }
+  .tl-marketing .problem-item { min-height: 0; padding: 18px 18px 18px 3px; }
+  .tl-marketing .problem-number { right: 7px; top: 18px; }
+  .tl-marketing .problem-item > svg { width: 18px; height: 18px; }
+  .tl-marketing .problem-item h3 { margin-top: 11px; font-size: 14px; }
+  .tl-marketing .problem-item p { max-width: 420px; margin-top: 5px; font-size: 12px; }
+  .tl-marketing .feature-grid { grid-template-columns: 1fr 1fr; margin-top: 31px; }
+  .tl-marketing .feature-item { min-height: 167px; padding: 16px 12px; }
+  .tl-marketing .feature-icon { width: 30px; height: 30px; }
+  .tl-marketing .feature-icon svg { width: 15px; height: 15px; }
+  .tl-marketing .feature-index { top: 19px; right: 12px; }
+  .tl-marketing .feature-item h3 { margin-top: 13px; font-size: 13px; }
+  .tl-marketing .feature-item p { font-size: 11px; line-height: 1.65; }
+  .tl-marketing .how-layout, .tl-marketing .trust-layout, .tl-marketing .faq-layout { grid-template-columns: 1fr; gap: 29px; }
+  .tl-marketing .how-layout .section-heading h2 { max-width: 460px; }
+  .tl-marketing .steps-list { margin-top: 0; }
+  .tl-marketing .step-row { grid-template-columns: 34px 1fr 16px; gap: 10px; padding: 17px 0; }
+  .tl-marketing .step-number { font-size: 11px; }
+  .tl-marketing .step-row h3 { font-size: 14px; }
+  .tl-marketing .step-row p { font-size: 12px; }
+  .tl-marketing .trust-band { padding: 55px 0; }
+  .tl-marketing .trust-copy h2 { font-size: 34px; }
+  .tl-marketing .trust-copy > p { font-size: 13px; }
+  .tl-marketing .trust-points > div { gap: 11px; padding: 13px 0; font-size: 11px; }
+  .tl-marketing .trust-points svg { width: 16px; height: 16px; }
+  .tl-marketing .pricing-grid { grid-template-columns: 1fr; gap: 17px; max-width: 450px; margin-inline: auto; }
+  .tl-marketing .price-plan { padding: 22px 20px; }
+  .tl-marketing .plan-description { min-height: 0; }
+  .tl-marketing .plan-price { margin-top: 15px; font-size: 33px; }
+  .tl-marketing .price-plan ul { gap: 9px; }
+  .tl-marketing .comparison-wrap { margin-top: 36px; }
+  .tl-marketing .comparison-table th, .tl-marketing .comparison-table td { padding: 10px 11px; font-size: 10px; }
+  .tl-marketing .faq-layout .section-heading h2 { font-size: 30px; }
+  .tl-marketing .faq-trigger { min-height: 51px; font-size: 12px; }
+  .tl-marketing .faq-content p { font-size: 12px; }
+  .tl-marketing .cta-band { padding: 35px 0; }
+  .tl-marketing .cta-inner { align-items: flex-start; flex-direction: column; gap: 22px; }
+  .tl-marketing .cta-inner h2 { max-width: 440px; font-size: 26px; }
+  .tl-marketing .button-light { min-height: 40px; }
+  .tl-marketing .site-footer { padding-top: 37px; }
+  .tl-marketing .footer-top { grid-template-columns: 1fr 1fr; gap: 27px 20px; padding-bottom: 27px; }
+  .tl-marketing .footer-brand-block { grid-column: 1 / -1; }
+  .tl-marketing .footer-brand-block > p { max-width: 300px; }
+  .tl-marketing .footer-column { gap: 10px; }
+  .tl-marketing .footer-bottom { flex-direction: column; gap: 8px; font-size: 9px; line-height: 1.6; }
+  .tl-marketing .inner-page { padding-top: 42px; }
+  .tl-marketing .inner-intro { margin-bottom: 29px; }
+  .tl-marketing .inner-intro h1 { font-size: 37px; }
+  .tl-marketing .inner-intro > p { font-size: 13px; }
+  .tl-marketing .editorial-content { padding-bottom: 48px; }
+  .tl-marketing .editorial-content h2 { font-size: 16px; }
+  .tl-marketing .editorial-content p { font-size: 12px; }
+  .tl-marketing .contact-layout { gap: 29px; padding-top: 22px; }
+  .tl-marketing .security-list li { font-size: 12px; }
+  .tl-marketing .draft-notice { font-size: 10px; }
+  .tl-marketing .inner-faq { padding: 51px 0; }
+}
+@media (max-width: 390px) {
+  .tl-marketing .site-shell { width: calc(100% - 30px); }
+  .tl-marketing .hero-content h1 { font-size: 49px; }
+  .tl-marketing .hero-badge { font-size: 9px; }
+  .tl-marketing .hero-checks { column-gap: 6px; }
+  .tl-marketing .hero-checks > div { font-size: 9px; }
+  .tl-marketing .sidebar-logo { font-size: 9px; }
+  .tl-marketing .sidebar-item { gap: 4px; padding-inline: 5px; font-size: 7px; }
+  .tl-marketing .sidebar-item svg { width: 10px; height: 10px; }
+  .tl-marketing .feature-item { padding-inline: 10px; }
+  .tl-marketing .feature-item h3 { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl-marketing *, .tl-marketing *::before, .tl-marketing *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
