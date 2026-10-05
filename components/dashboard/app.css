@@ -224,7 +224,7 @@
   color: var(--tl-primary);
 }
 .tl-app .tl-empty-icon svg { width: 20px; height: 20px; }
-.tl-app .tl-empty-title { margin: 0; color: var(--tl-navy); font-size: 14px; font-weight: 650; }
+.tl-app .tl-empty-title { color: var(--tl-navy); font-size: 14px; font-weight: 650; }
 .tl-app .tl-empty-desc { max-width: 28rem; margin: 6px auto 0; color: var(--tl-muted); font-size: 13px; line-height: 1.7; }
 
 /* ---------- Modal ---------- */
