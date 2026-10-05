@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Brand } from "@/components/marketing/brand";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -38,50 +39,34 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link href="/" className="text-2xl font-bold text-primary-800">
-            Trustloop
-          </Link>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">
-            Reset your password
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Enter your email and we&apos;ll send you a link to set a new
-            password.
-          </p>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <Brand />
         </div>
+        <h1 className="auth-title">Reset your password</h1>
+        <p className="auth-sub">
+          Enter your email and we&apos;ll send you a link to set a new
+          password.
+        </p>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8"
-        >
+        <form onSubmit={handleSubmit} className="auth-form">
           {error && (
-            <div
-              role="alert"
-              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
+            <div role="alert" className="app-alert app-alert-error auth-banner">
               {error}
             </div>
           )}
 
           {sent && (
-            <div
-              role="status"
-              className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
-            >
+            <div role="status" className="app-alert app-alert-success auth-banner">
               Check your email — we sent a password reset link to{" "}
-              <span className="font-medium">{email}</span>. The link expires
+              <span className="font-semibold">{email}</span>. The link expires
               shortly, so open it soon.
             </div>
           )}
 
-          <div className="mb-6">
-            <label
-              htmlFor="email"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
+          <div>
+            <label htmlFor="email" className="app-label">
               Email
             </label>
             <input
@@ -90,7 +75,7 @@ export default function ForgotPasswordPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="app-input"
               placeholder="you@company.com"
             />
           </div>
@@ -98,19 +83,14 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-primary btn-block"
           >
             {loading ? "Sending..." : "Send reset link"}
           </button>
 
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="auth-links">
             Remember your password?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-primary-600 hover:underline"
-            >
-              Log in
-            </Link>
+            <Link href="/login">Log in</Link>
           </p>
         </form>
       </div>

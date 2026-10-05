@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Brand } from "@/components/marketing/brand";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,47 +56,31 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link href="/" className="text-2xl font-bold text-primary-800">
-            Trustloop
-          </Link>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">
-            Log in to your account
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Welcome back. Enter your details to continue.
-          </p>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <Brand />
         </div>
+        <h1 className="auth-title">Log in to your account</h1>
+        <p className="auth-sub">
+          Welcome back. Enter your details to continue.
+        </p>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8"
-        >
+        <form onSubmit={handleSubmit} className="auth-form">
           {verified && (
-            <div
-              role="status"
-              className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
-            >
+            <div role="status" className="app-alert app-alert-success auth-banner">
               Your email is verified — you can now log in.
             </div>
           )}
 
           {error && (
-            <div
-              role="alert"
-              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
+            <div role="alert" className="app-alert app-alert-error auth-banner">
               {error}
             </div>
           )}
 
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
+          <div>
+            <label htmlFor="email" className="app-label">
               Email
             </label>
             <input
@@ -104,20 +89,17 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="app-input"
               placeholder="you@company.com"
             />
           </div>
 
-          <div className="mb-6">
-            <div className="mb-1 flex items-center justify-between">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+          <div>
+            <div className="auth-label-row">
+              <label htmlFor="password" className="app-label auth-inline-label">
                 Password
               </label>
-              <Link
-                href="/forgot-password"
-                className="text-sm font-medium text-primary-600 hover:underline"
-              >
+              <Link href="/forgot-password" className="auth-forgot">
                 Forgot password?
               </Link>
             </div>
@@ -127,7 +109,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="app-input"
               placeholder="••••••••"
             />
           </div>
@@ -135,16 +117,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-primary btn-block"
           >
             {loading ? "Logging in..." : "Log in"}
           </button>
 
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="auth-links">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-primary-600 hover:underline">
-              Sign up
-            </Link>
+            <Link href="/signup">Sign up</Link>
           </p>
         </form>
       </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Brand } from "@/components/marketing/brand";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -46,48 +47,32 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link href="/" className="text-2xl font-bold text-primary-800">
-            Trustloop
-          </Link>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">
-            Choose a new password
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Set a new password for your account, then you&apos;ll be taken to
-            your dashboard.
-          </p>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <Brand />
         </div>
+        <h1 className="auth-title">Choose a new password</h1>
+        <p className="auth-sub">
+          Set a new password for your account, then you&apos;ll be taken to
+          your dashboard.
+        </p>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8"
-        >
+        <form onSubmit={handleSubmit} className="auth-form">
           {error && (
-            <div
-              role="alert"
-              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
+            <div role="alert" className="app-alert app-alert-error auth-banner">
               {error}
             </div>
           )}
 
           {success && (
-            <div
-              role="status"
-              className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
-            >
+            <div role="status" className="app-alert app-alert-success auth-banner">
               Password updated! Taking you to your dashboard...
             </div>
           )}
 
-          <div className="mb-4">
-            <label
-              htmlFor="password"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
+          <div>
+            <label htmlFor="password" className="app-label">
               New password
             </label>
             <input
@@ -97,16 +82,13 @@ export default function ResetPasswordPage() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="app-input"
               placeholder="At least 8 characters"
             />
           </div>
 
-          <div className="mb-6">
-            <label
-              htmlFor="confirm-password"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
+          <div>
+            <label htmlFor="confirm-password" className="app-label">
               Confirm new password
             </label>
             <input
@@ -116,7 +98,7 @@ export default function ResetPasswordPage() {
               minLength={8}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="app-input"
               placeholder="Repeat the new password"
             />
           </div>
@@ -124,18 +106,13 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-primary btn-block"
           >
             {loading ? "Saving..." : "Set new password"}
           </button>
 
-          <p className="mt-4 text-center text-sm text-gray-600">
-            <Link
-              href="/login"
-              className="font-medium text-primary-600 hover:underline"
-            >
-              Back to login
-            </Link>
+          <p className="auth-links">
+            <Link href="/login">Back to login</Link>
           </p>
         </form>
       </div>
