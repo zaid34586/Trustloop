@@ -1,6 +1,7 @@
 /* Trustloop dashboard design tokens and shared components.
-   Scoped under .tl-app (set on the dashboard layout) so marketing,
-   login and signup pages are never affected. Visual language mirrors
+   Scoped under .tl-app (set on the dashboard layout) so marketing
+   pages are never affected; auth pages opt in themselves by adding
+   .tl-app to their page root. Visual language mirrors
    components/marketing/marketing.css: Inter, near-white blue-tinted
    background, navy headings, blue accent, soft 1px borders, rounded
    cards, quiet shadows. */
@@ -559,6 +560,12 @@
 .tl-app .tl-section-title { margin: 0; color: var(--tl-navy); font-size: 17px; font-weight: 650; }
 .tl-app .tl-section-sub { margin: 4px 0 0; color: var(--tl-muted); font-size: 14px; line-height: 1.65; }
 .tl-app .tl-label { display: block; margin-bottom: 6px; color: var(--tl-navy); font-size: 13px; font-weight: 550; }
+
+/* Auth pages (login, signup, forgot/reset password) opt in by putting
+   .tl-app on the page root; they reuse the cards, inputs, buttons and
+   alerts above plus these two headings. */
+.tl-app .tl-auth-title { color: var(--tl-navy); font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.tl-app .tl-auth-sub { color: var(--tl-muted); font-size: 14px; }
 .tl-app .tl-fail-panel { border: 1px solid oklch(0.88 0.05 25); border-radius: 12px; background: var(--tl-red-bg); padding: 20px; }
 .tl-app .tl-fail-msg { margin: 6px 0 0; color: oklch(0.47 0.15 25); font-size: 14px; line-height: 1.65; }
 
