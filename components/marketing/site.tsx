@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -321,6 +321,9 @@ function FooterColumn({
   );
 }
 
+const DEMO_ROW = 1;
+const DEMO_STATUSES = ["Pending", "Drafted", "Approved"];
+
 export function ProductMockup() {
   const rows = [
     {
@@ -363,7 +366,52 @@ export function ProductMockup() {
     },
   ];
   const [active, setActive] = useState(0);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [demoStep, setDemoStep] = useState<number | null>(null);
+  const [inView, setInView] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [tabVisible, setTabVisible] = useState(true);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.25 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onVisibility = () =>
+      setTabVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  useEffect(() => {
+    if (!inView || paused || !tabVisible) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setDemoStep((step) => step ?? 0);
+    const timer = window.setInterval(() => {
+      setDemoStep((step) => ((step ?? 0) + 1) % DEMO_STATUSES.length);
+    }, 2400);
+    return () => window.clearInterval(timer);
+  }, [inView, paused, tabVisible]);
+
+  const statusOf = (index: number, original: string) =>
+    index === DEMO_ROW && demoStep !== null
+      ? DEMO_STATUSES[demoStep]
+      : original;
   const current = rows[active];
+  const currentStatus = statusOf(active, current.status);
+  const approvedCount = rows.filter(
+    (row, index) => statusOf(index, row.status) === "Approved",
+  ).length;
   const sidebarLinks = [
     { icon: PanelLeft, label: "Dashboard" },
     { icon: FileText, label: "Documents" },
@@ -372,7 +420,19 @@ export function ProductMockup() {
     { icon: LockKeyhole, label: "Settings" },
   ];
   return (
-    <div className="mockup-wrap" aria-label="Sample questionnaire review screen">
+    <div
+      className="mockup-wrap"
+      aria-label="Sample questionnaire review screen"
+      ref={wrapRef}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setPaused(false);
+        }
+      }}
+    >
       <div className="mockup-window">
         <div className="window-bar">
           <div className="window-dots">
@@ -427,10 +487,16 @@ export function ProductMockup() {
             <div className="review-progress">
               <div className="progress-label">
                 <span>Review progress</span>
-                <b>2 of 4 approved</b>
+                <b>
+                  {approvedCount} of {rows.length} approved
+                </b>
               </div>
               <div className="progress-track">
-                <span />
+                <span
+                  style={{
+                    width: `${(approvedCount / rows.length) * 100}%`,
+                  }}
+                />
               </div>
             </div>
             <div className="mock-workspace">
@@ -445,62 +511,65 @@ export function ProductMockup() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row, index) => (
-                      <tr
-                        key={row.question}
-                        className={index === active ? "is-active" : ""}
-                        tabIndex={0}
-                        title="Show details"
-                        onClick={() => setActive(index)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            setActive(index);
-                          }
-                        }}
-                      >
-                        <td className="question-cell">{row.question}</td>
-                        <td
-                          className={
-                            row.confidence === "None"
-                              ? "not-found-answer"
-                              : "answer-cell"
-                          }
+                    {rows.map((row, index) => {
+                      const status = statusOf(index, row.status);
+                      return (
+                        <tr
+                          key={row.question}
+                          className={index === active ? "is-active" : ""}
+                          tabIndex={0}
+                          title="Show details"
+                          onClick={() => setActive(index)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setActive(index);
+                            }
+                          }}
                         >
-                          {row.answer}
-                          <a href="#sources">
-                            Sources <ArrowUpRight />
-                          </a>
-                        </td>
-                        <td>
-                          <span
-                            className={`confidence confidence-${row.confidence.toLowerCase()}`}
+                          <td className="question-cell">{row.question}</td>
+                          <td
+                            className={
+                              row.confidence === "None"
+                                ? "not-found-answer"
+                                : "answer-cell"
+                            }
                           >
-                            <i />
-                            {row.confidence}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`status status-${row.status.toLowerCase().replace(" ", "-")}`}
-                          >
-                            {row.status === "Approved" && <Check size={11} />}
-                            {row.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                            {row.answer}
+                            <a href="#sources">
+                              Sources <ArrowUpRight />
+                            </a>
+                          </td>
+                          <td>
+                            <span
+                              className={`confidence confidence-${row.confidence.toLowerCase()}`}
+                            >
+                              <i />
+                              {row.confidence}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={`status status-${status.toLowerCase().replace(" ", "-")}`}
+                            >
+                              {status === "Approved" && <Check size={11} />}
+                              {status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-              <aside className="mock-detail" aria-live="polite">
+              <aside className="mock-detail">
                 <div className="mock-detail-label">SELECTED QUESTION</div>
                 <p className="mock-detail-q">{current.question}</p>
                 <span
-                  className={`status status-${current.status.toLowerCase().replace(" ", "-")}`}
+                  className={`status status-${currentStatus.toLowerCase().replace(" ", "-")}`}
                 >
-                  {current.status === "Approved" && <Check size={11} />}
-                  {current.status}
+                  {currentStatus === "Approved" && <Check size={11} />}
+                  {currentStatus}
                 </span>
                 <div className="mock-detail-label">ANSWER</div>
                 <p className="mock-detail-answer">{current.answer}</p>
@@ -550,9 +619,12 @@ function Hero() {
           review
         </div>
         <h1>
-          Security answers,
-          <br />
-          <span>without the search.</span>
+          <span className="hero-line">
+            <span>Security answers,</span>
+          </span>
+          <span className="hero-line hero-line-accent">
+            <span>without the search.</span>
+          </span>
         </h1>
         <p className="hero-copy">
           Turn scattered policies and past answers into a review-ready first
