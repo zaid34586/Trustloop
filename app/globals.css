@@ -556,10 +556,56 @@ h1, h2, h3, .brand, .plan-price { font-family: var(--font-sora), var(--font-sans
   box-shadow: 0 12px 32px -20px oklch(0.22 0.02 160 / 45%);
 }
 
-.reveal { opacity: 0; transform: translateY(18px); transition: opacity 550ms var(--ease), transform 550ms var(--ease); }
-.reveal.is-visible { opacity: 1; transform: none; }
+/* Reveal: hidden only when JS is present (html.js from inline script),
+   so crawlers and no-JS visitors always see the content. */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity var(--duration-reveal) var(--ease),
+    transform var(--duration-reveal) var(--ease);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.js .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 120;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  opacity: 0;
+  pointer-events: none;
+}
+.scroll-progress.is-active {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1 !important; transform: none !important; }
+  html {
+    scroll-behavior: auto;
+  }
+  .js .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .faq-content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--duration-slow) var(--ease); }

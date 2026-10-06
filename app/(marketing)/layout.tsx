@@ -1,4 +1,5 @@
 import { Navbar, Footer } from "@/components/marketing/site";
+import { ScrollProgress } from "@/components/marketing/scroll-progress";
 
 export default function MarketingLayout({
   children,
@@ -7,6 +8,7 @@ export default function MarketingLayout({
 }) {
   return (
     <>
+      <ScrollProgress />
       <Navbar />
       {children}
       <Footer />

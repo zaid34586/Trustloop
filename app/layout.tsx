@@ -50,6 +50,13 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${sora.variable}`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.documentElement.classList.add("js");`,
+          }}
+        />
+      </head>
       <body className="antialiased">
         {children}
       </body>
