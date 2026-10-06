@@ -13,6 +13,9 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  ),
   title: "Trustloop - Security questionnaires, drafted from your own documents",
   description:
     "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",

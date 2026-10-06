@@ -60,7 +60,8 @@ export default function SignupPage() {
         </div>
         <h1 className="auth-title">Get early access</h1>
         <p className="auth-sub">
-          Create your account to start answering questionnaires faster.
+          Create your account to start drafting questionnaire answers from
+          your own documents.
         </p>
 
         <form onSubmit={handleSubmit} className="auth-form">

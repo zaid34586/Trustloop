@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { HomePage } from "@/components/marketing/site";
 
-const title = "Trustloop — Security questionnaires, answered in minutes";
+const title = "Trustloop - Security questionnaires, drafted from your own documents";
 const description =
   "Draft sourced security questionnaire answers from your own documents. Review every response before sharing.";
 

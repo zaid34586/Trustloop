@@ -357,7 +357,7 @@ export function ProductMockup() {
             <i />
           </div>
           <div className="window-address">
-            <LockKeyhole /> app.trustloop.com / questionnaires / review
+            <LockKeyhole /> Questionnaire review
           </div>
           <div className="window-avatar">JD</div>
         </div>
@@ -367,7 +367,7 @@ export function ProductMockup() {
               <span>
                 <Fingerprint size={17} />
               </span>
-              trustloop
+              Trustloop
             </div>
             <div className="workspace-label">WORKSPACE</div>
             {sidebarLinks.map(({ icon: Icon, label }) => (

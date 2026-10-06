@@ -3,7 +3,7 @@ import { PricingPage } from "@/components/marketing/site";
 
 const title = "Pricing — Trustloop";
 const description =
-  "Compare Trustloop Starter, Growth, and Business plans for faster security questionnaire reviews.";
+  "Compare Trustloop Starter, Growth, and Business plans and what each includes.";
 
 export const metadata: Metadata = {
   title,
