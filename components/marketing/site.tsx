@@ -247,6 +247,9 @@ export function Navbar() {
 export function Footer() {
   return (
     <footer className="site-footer">
+      <Reveal className="footer-wordmark">
+        <span aria-hidden="true">Trustloop</span>
+      </Reveal>
       <div className="site-shell">
         <div className="footer-top">
           <div className="footer-brand-block">
@@ -792,7 +795,17 @@ function Features() {
         />
         <div className="feature-grid">
           {featureItems.map(({ icon: Icon, title, body }, index) => (
-            <article className="feature-item" key={title}>
+            <article
+              className="feature-item"
+              key={title}
+              tabIndex={0}
+              onMouseMove={(event) => {
+                const el = event.currentTarget;
+                const rect = el.getBoundingClientRect();
+                el.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+                el.style.setProperty("--my", `${event.clientY - rect.top}px`);
+              }}
+            >
               <div className="feature-icon">
                 <Icon />
               </div>

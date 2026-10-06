@@ -438,8 +438,47 @@ h1, h2, h3, .brand, .plan-price { font-family: var(--font-sora), var(--font-sans
 .feature-item p { max-width: 350px; font-size: 14px; line-height: 1.8; }
 .feature-band { background: var(--card); border-block: 1px solid var(--border); }
 .feature-grid { margin-top: 62px; }
-.feature-item { min-height: 240px; padding: 31px; transition: background 200ms ease; }
-.feature-item:hover { background: var(--surface-tint); }
+.feature-item {
+  min-height: 240px;
+  padding: 31px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition:
+    background var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration) var(--ease),
+    transform var(--duration) var(--ease);
+}
+.feature-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    360px 260px at var(--mx, 50%) var(--my, 30%),
+    color-mix(in oklab, var(--primary) 14%, transparent),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease);
+  pointer-events: none;
+}
+.feature-item:hover,
+.feature-item:focus-visible {
+  background: var(--card);
+  border-color: color-mix(in oklab, var(--primary) 38%, transparent);
+  box-shadow: 0 20px 46px -30px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+.feature-item:hover::before,
+.feature-item:focus-visible::before {
+  opacity: 1;
+}
+.feature-item:hover .feature-icon,
+.feature-item:focus-visible .feature-icon {
+  transform: translateY(-4px);
+}
+.feature-icon { transition: transform var(--duration) var(--ease); }
 .feature-icon { width: 43px; height: 43px; background: var(--mint); color: var(--primary); }
 .feature-icon svg { width: 22px; height: 22px; }
 .feature-item h3 { font-size: 17px; margin-top: 24px; }
@@ -636,6 +675,239 @@ h1, h2, h3, .brand, .plan-price { font-family: var(--font-sora), var(--font-sans
     animation-timeline: auto, auto, view();
     animation-range: normal, normal, entry 0% exit 100%;
   }
+}
+
+/* Section reveal choreography: heading fade, eyebrow line draws in,
+   cards stagger, comparison slides from the sides, trust points stagger. */
+.js .reveal .section-heading .eyebrow,
+.js .reveal .section-heading h2,
+.js .reveal .section-heading > p,
+.js .reveal .trust-copy .eyebrow,
+.js .reveal .trust-copy h2 {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity var(--duration-reveal) var(--ease),
+    transform var(--duration-reveal) var(--ease);
+}
+.js .reveal.is-visible .section-heading .eyebrow,
+.js .reveal.is-visible .trust-copy .eyebrow {
+  opacity: 1;
+  transform: none;
+  transition-delay: 60ms;
+}
+.js .reveal.is-visible .section-heading h2,
+.js .reveal.is-visible .trust-copy h2 {
+  opacity: 1;
+  transform: none;
+  transition-delay: 140ms;
+}
+.js .reveal.is-visible .section-heading > p {
+  opacity: 1;
+  transform: none;
+  transition-delay: 230ms;
+}
+.js .reveal .section-heading .eyebrow > span {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 550ms var(--ease) 300ms;
+}
+.js .reveal.is-visible .section-heading .eyebrow > span {
+  transform: scaleX(1);
+}
+
+.js .reveal .feature-grid > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 550ms var(--ease),
+    transform 550ms var(--ease);
+}
+.js .reveal.is-visible .feature-grid > * {
+  opacity: 1;
+  transform: none;
+}
+.js .reveal.is-visible .feature-grid > *:nth-child(1) { transition-delay: 300ms; }
+.js .reveal.is-visible .feature-grid > *:nth-child(2) { transition-delay: 375ms; }
+.js .reveal.is-visible .feature-grid > *:nth-child(3) { transition-delay: 450ms; }
+.js .reveal.is-visible .feature-grid > *:nth-child(4) { transition-delay: 525ms; }
+.js .reveal.is-visible .feature-grid > *:nth-child(5) { transition-delay: 600ms; }
+.js .reveal.is-visible .feature-grid > *:nth-child(6) { transition-delay: 675ms; }
+
+.js .reveal .compare-without,
+.js .reveal .compare-with {
+  opacity: 0;
+  transition:
+    opacity 650ms var(--ease) 280ms,
+    transform 650ms var(--ease) 280ms;
+}
+.problem-band { overflow: hidden; }
+.js .reveal .compare-without { transform: translateX(-32px); }
+.js .reveal .compare-with { transform: translateX(32px); }
+.js .reveal.is-visible .compare-col {
+  opacity: 1;
+  transform: none;
+}
+
+.js .reveal .evidence-notes > div {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 500ms var(--ease),
+    transform 500ms var(--ease);
+}
+.js .reveal.is-visible .evidence-notes > div {
+  opacity: 1;
+  transform: none;
+}
+.js .reveal.is-visible .evidence-notes > div:nth-child(1) { transition-delay: 350ms; }
+.js .reveal.is-visible .evidence-notes > div:nth-child(2) { transition-delay: 410ms; }
+.js .reveal.is-visible .evidence-notes > div:nth-child(3) { transition-delay: 470ms; }
+.js .reveal.is-visible .evidence-notes > div:nth-child(4) { transition-delay: 530ms; }
+.js .reveal .evidence-example {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 650ms var(--ease) 360ms,
+    transform 650ms var(--ease) 360ms;
+}
+.js .reveal.is-visible .evidence-example {
+  opacity: 1;
+  transform: none;
+}
+
+.js .reveal .trust-points > div {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 550ms var(--ease),
+    transform 550ms var(--ease);
+}
+.js .reveal.is-visible .trust-points > div {
+  opacity: 1;
+  transform: none;
+}
+.js .reveal.is-visible .trust-points > div:nth-child(1) { transition-delay: 340ms; }
+.js .reveal.is-visible .trust-points > div:nth-child(2) { transition-delay: 415ms; }
+.js .reveal.is-visible .trust-points > div:nth-child(3) { transition-delay: 490ms; }
+.js .reveal.is-visible .trust-points > div:nth-child(4) { transition-delay: 565ms; }
+
+/* Footer wordmark reveal */
+.site-footer > .footer-wordmark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.05em;
+  z-index: 0;
+  overflow: hidden;
+  text-align: center;
+  pointer-events: none;
+}
+.footer-wordmark span {
+  display: block;
+  font-family: var(--font-sora), var(--font-sans);
+  font-size: clamp(96px, 17vw, 260px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+  color: color-mix(in oklab, var(--text-on-deep) 7%, transparent);
+  -webkit-text-stroke: 1px color-mix(in oklab, var(--text-on-deep) 9%, transparent);
+  user-select: none;
+}
+
+/* Buttons: arrow nudge, press, loading hook */
+.button-dark svg,
+.button-light svg,
+.plan-cta svg,
+.nav-cta svg,
+.form-send svg,
+.mock-export svg,
+.text-link svg {
+  transition: transform var(--duration-fast) var(--ease);
+}
+.button-dark:hover svg,
+.button-light:hover svg,
+.plan-cta:hover svg,
+.nav-cta:hover svg,
+.form-send:hover svg,
+.mock-export:hover svg,
+.text-link:hover svg {
+  transform: translateX(3px);
+}
+.hero-actions .text-link:hover svg {
+  transform: translateY(3px);
+}
+.button-dark:active,
+.button-light:active,
+.plan-cta:active,
+.nav-cta:active,
+.form-send:active {
+  transform: scale(0.98);
+}
+.button-dark.is-loading,
+.button-light.is-loading,
+.form-send.is-loading {
+  pointer-events: none;
+  opacity: 0.75;
+}
+.button-dark.is-loading::after,
+.button-light.is-loading::after,
+.form-send.is-loading::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in oklab, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(1turn); }
+}
+
+/* Links: animated underline on hover/focus */
+.text-link,
+.footer-column a,
+.footer-bottom a,
+.powered-by a,
+.contact-details > a,
+.about-rivox a,
+.login-link,
+.auth-links a,
+.auth-forgot,
+.app-table a,
+.security-copy .text-link {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition:
+    background-size var(--duration) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+.text-link:hover,
+.text-link:focus-visible,
+.footer-column a:hover,
+.footer-column a:focus-visible,
+.footer-bottom a:hover,
+.footer-bottom a:focus-visible,
+.powered-by a:hover,
+.powered-by a:focus-visible,
+.contact-details > a:hover,
+.contact-details > a:focus-visible,
+.about-rivox a:hover,
+.about-rivox a:focus-visible,
+.login-link:hover,
+.login-link:focus-visible,
+.auth-links a:hover,
+.auth-links a:focus-visible,
+.auth-forgot:hover,
+.auth-forgot:focus-visible,
+.app-table a:hover,
+.app-table a:focus-visible,
+.security-copy .text-link:hover,
+.security-copy .text-link:focus-visible {
+  background-size: 100% 1px;
 }
 
 .scroll-progress {
