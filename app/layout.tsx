@@ -13,21 +13,25 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Trustloop — Powered by Rivox",
+  title: "Trustloop - Security questionnaires, drafted from your own documents",
   description:
-    "Answer customer security questionnaires in minutes, not weeks. Trustloop drafts answers from your own security documents using AI.",
+    "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.png",
+  },
   openGraph: {
-    title: "Trustloop — Powered by Rivox",
+    title: "Trustloop - Security questionnaires, drafted from your own documents",
     description:
-      "Answer customer security questionnaires in minutes, not weeks. Trustloop drafts answers from your own security documents using AI.",
+      "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",
     siteName: "Trustloop",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Trustloop — Powered by Rivox",
+    title: "Trustloop - Security questionnaires, drafted from your own documents",
     description:
-      "Answer customer security questionnaires in minutes, not weeks. Trustloop drafts answers from your own security documents using AI.",
+      "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",
   },
 };
 
