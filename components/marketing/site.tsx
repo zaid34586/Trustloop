@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { Brand } from "@/components/marketing/brand";
+import { Reveal } from "@/components/marketing/reveal";
 
 const navItems = [
   { label: "Features", href: "/#features" },
@@ -126,7 +127,11 @@ function FaqList({
       {items.map((item, index) => {
         const isOpen = open === index;
         return (
-          <div className="faq-item" key={item.question}>
+          <div
+            className="faq-item"
+            data-open={isOpen ? "true" : "false"}
+            key={item.question}
+          >
             <button
               type="button"
               id={`${idPrefix}-trigger-${index}`}
@@ -138,16 +143,15 @@ function FaqList({
               {item.question}
               <ChevronDown className="faq-chevron" aria-hidden="true" />
             </button>
-            {isOpen && (
-              <div
-                className="faq-content"
-                id={`${idPrefix}-content-${index}`}
-                role="region"
-                aria-labelledby={`${idPrefix}-trigger-${index}`}
-              >
-                <div>{item.answer}</div>
-              </div>
-            )}
+            <div
+              className="faq-content"
+              id={`${idPrefix}-content-${index}`}
+              role="region"
+              aria-labelledby={`${idPrefix}-trigger-${index}`}
+              aria-hidden={!isOpen}
+            >
+              <div className="faq-content-inner">{item.answer}</div>
+            </div>
           </div>
         );
       })}
@@ -182,8 +186,15 @@ function SectionHeading({
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   return (
-    <header className="site-header">
+    <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
       <div className="site-shell nav-inner">
         <Brand />
         <nav aria-label="Main navigation" className="desktop-nav">
@@ -318,6 +329,9 @@ export function ProductMockup() {
         "Access is restricted to authorized personnel and reviewed regularly.",
       confidence: "High",
       status: "Approved",
+      source: "Access control policy · Section 2.1",
+      excerpt:
+        "Production access is granted by role and reviewed on a regular basis.",
     },
     {
       question: "Do you encrypt customer data at rest?",
@@ -325,12 +339,17 @@ export function ProductMockup() {
         "Customer data is encrypted at rest using managed storage controls.",
       confidence: "Medium",
       status: "Drafted",
+      source: "Data protection policy · Section 3.2",
+      excerpt:
+        "Customer data stored in managed systems is encrypted at rest.",
     },
     {
       question: "How often do you conduct penetration testing?",
       answer: "I could not find this in your documents.",
       confidence: "None",
       status: "Not found",
+      source: null as string | null,
+      excerpt: null as string | null,
     },
     {
       question: "What is your incident response process?",
@@ -338,8 +357,13 @@ export function ProductMockup() {
         "Incidents are triaged, documented, and escalated to the response team.",
       confidence: "High",
       status: "Approved",
+      source: "Incident response plan · Section 1.4",
+      excerpt:
+        "All incidents are triaged, documented, and escalated to the response team.",
     },
   ];
+  const [active, setActive] = useState(0);
+  const current = rows[active];
   const sidebarLinks = [
     { icon: PanelLeft, label: "Dashboard" },
     { icon: FileText, label: "Documents" },
@@ -409,55 +433,108 @@ export function ProductMockup() {
                 <span />
               </div>
             </div>
-            <div className="table-scroll">
-              <table className="review-table">
-                <thead>
-                  <tr>
-                    <th>QUESTION</th>
-                    <th>AI DRAFT ANSWER</th>
-                    <th>CONFIDENCE</th>
-                    <th>STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.question}>
-                      <td className="question-cell">{row.question}</td>
-                      <td
-                        className={
-                          row.confidence === "None"
-                            ? "not-found-answer"
-                            : "answer-cell"
-                        }
-                      >
-                        {row.answer}
-                        <a href="#sources">
-                          Sources <ArrowUpRight />
-                        </a>
-                      </td>
-                      <td>
-                        <span
-                          className={`confidence confidence-${row.confidence.toLowerCase()}`}
-                        >
-                          <i />
-                          {row.confidence}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`status status-${row.status.toLowerCase().replace(" ", "-")}`}
-                        >
-                          {row.status === "Approved" && <Check size={11} />}
-                          {row.status}
-                        </span>
-                      </td>
+            <div className="mock-workspace">
+              <div className="table-scroll">
+                <table className="review-table">
+                  <thead>
+                    <tr>
+                      <th>QUESTION</th>
+                      <th>AI DRAFT ANSWER</th>
+                      <th>CONFIDENCE</th>
+                      <th>STATUS</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, index) => (
+                      <tr
+                        key={row.question}
+                        className={index === active ? "is-active" : ""}
+                        tabIndex={0}
+                        title="Show details"
+                        onClick={() => setActive(index)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setActive(index);
+                          }
+                        }}
+                      >
+                        <td className="question-cell">{row.question}</td>
+                        <td
+                          className={
+                            row.confidence === "None"
+                              ? "not-found-answer"
+                              : "answer-cell"
+                          }
+                        >
+                          {row.answer}
+                          <a href="#sources">
+                            Sources <ArrowUpRight />
+                          </a>
+                        </td>
+                        <td>
+                          <span
+                            className={`confidence confidence-${row.confidence.toLowerCase()}`}
+                          >
+                            <i />
+                            {row.confidence}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`status status-${row.status.toLowerCase().replace(" ", "-")}`}
+                          >
+                            {row.status === "Approved" && <Check size={11} />}
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <aside className="mock-detail" aria-live="polite">
+                <div className="mock-detail-label">SELECTED QUESTION</div>
+                <p className="mock-detail-q">{current.question}</p>
+                <span
+                  className={`status status-${current.status.toLowerCase().replace(" ", "-")}`}
+                >
+                  {current.status === "Approved" && <Check size={11} />}
+                  {current.status}
+                </span>
+                <div className="mock-detail-label">ANSWER</div>
+                <p className="mock-detail-answer">{current.answer}</p>
+                <div className="mock-detail-label">SOURCE</div>
+                {current.source ? (
+                  <div className="mock-detail-source">
+                    <FileText size={13} />
+                    <div>
+                      <b>{current.source}</b>
+                      <q>{current.excerpt}</q>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mock-detail-flag">
+                    <CircleHelp size={13} />
+                    Not found in your documents — flagged for your team.
+                  </div>
+                )}
+              </aside>
             </div>
           </div>
         </div>
+      </div>
+      <div className="float-card float-source">
+        <FileText />
+        <span>
+          <b>Source</b> Data protection policy, Section 3.2
+        </span>
+      </div>
+      <div className="float-card float-flag">
+        <CircleHelp />
+        <span>
+          <b>Not found</b> flagged for your team
+        </span>
       </div>
       <p className="mockup-caption">Sample data for illustration</p>
     </div>
@@ -508,21 +585,44 @@ function Hero() {
   );
 }
 
-const problemItems = [
+const withoutItems = [
   {
     icon: FileText,
-    title: "Weeks of manual work",
-    body: "The same questions, researched and rewritten with every new customer review.",
+    title: "The same manual work, repeated",
+    body: "Every new review means researching and rewriting the same questions again.",
   },
   {
     icon: CircleHelp,
-    title: "Deals stuck waiting",
+    title: "Deals waiting on reviews",
     body: "Security reviews slow down sales while everyone waits for complete answers.",
   },
   {
     icon: Search,
     title: "Answers scattered across documents",
     body: "The right policy is somewhere in a shared drive, spreadsheet, or old response.",
+  },
+];
+
+const withItems = [
+  {
+    icon: CheckCircle2,
+    title: "Drafts start from your documents",
+    body: "Every answer begins with the policies and past responses your team provides.",
+  },
+  {
+    icon: FileText,
+    title: "Sources sit next to every answer",
+    body: "See the document and section behind a draft before you use it.",
+  },
+  {
+    icon: CircleHelp,
+    title: "Missing answers are flagged, not guessed",
+    body: "Questions without support in your documents are marked for your team.",
+  },
+  {
+    icon: CheckCircle2,
+    title: "Your team approves before anything ships",
+    body: "Nothing leaves your hands until a person reviews and approves it.",
   },
 ];
 
@@ -559,27 +659,51 @@ const featureItems = [
   },
 ];
 
-function Problems() {
+function ComparisonSection() {
   return (
     <section className="section-band problem-band">
-      <div className="site-shell">
+      <Reveal className="site-shell">
         <SectionHeading
-          eyebrow="THE SLOWDOWN"
-          title="Security reviews shouldn't stall good work."
-          body="The process is familiar: a new deal, a long spreadsheet, and the same scattered answers."
+          eyebrow="WITHOUT AND WITH"
+          title="Same review, a calmer way through it."
+          body="The questionnaire does not change. What changes is where the answers come from and who stays in control."
           centered
         />
-        <div className="problem-grid">
-          {problemItems.map(({ icon: Icon, title, body }, i) => (
-            <article className="problem-item" key={title}>
-              <div className="problem-number">0{i + 1}</div>
-              <Icon />
-              <h3>{title}</h3>
-              <p>{body}</p>
-            </article>
-          ))}
+        <div className="compare-grid">
+          <div className="compare-col compare-without">
+            <div className="compare-head compare-head-without">
+              <X /> Without Trustloop
+            </div>
+            <ul>
+              {withoutItems.map(({ icon: Icon, title, body }) => (
+                <li key={title}>
+                  <Icon />
+                  <div>
+                    <b>{title}</b>
+                    <span>{body}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="compare-col compare-with">
+            <div className="compare-head compare-head-with">
+              <CheckCircle2 /> With Trustloop
+            </div>
+            <ul>
+              {withItems.map(({ icon: Icon, title, body }) => (
+                <li key={title}>
+                  <Icon />
+                  <div>
+                    <b>{title}</b>
+                    <span>{body}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -587,7 +711,7 @@ function Problems() {
 function Features() {
   return (
     <section id="features" className="section-band feature-band">
-      <div className="site-shell">
+      <Reveal className="site-shell">
         <SectionHeading
           eyebrow="MADE FOR THE REAL WORK"
           title="Every answer, in context."
@@ -606,7 +730,7 @@ function Features() {
             </article>
           ))}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -614,7 +738,7 @@ function Features() {
 function EvidenceSection() {
   return (
     <section className="evidence-band">
-      <div className="site-shell evidence-layout">
+      <Reveal className="site-shell evidence-layout">
         <div className="evidence-copy">
           <div className="eyebrow">
             <span />
@@ -694,7 +818,7 @@ function EvidenceSection() {
             </span>
           </div>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -712,7 +836,7 @@ function HowItWorks() {
   ];
   return (
     <section id="how-it-works" className="section-band how-band">
-      <div className="site-shell how-layout">
+      <Reveal className="site-shell how-layout">
         <SectionHeading
           eyebrow="A CLEARER WORKFLOW"
           title="From questionnaire to reviewed answer."
@@ -730,7 +854,7 @@ function HowItWorks() {
             </div>
           ))}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -738,7 +862,7 @@ function HowItWorks() {
 function TrustSection() {
   return (
     <section className="trust-band">
-      <div className="site-shell trust-layout">
+      <Reveal className="site-shell trust-layout">
         <div className="trust-copy">
           <div className="eyebrow">
             <span />
@@ -767,7 +891,93 @@ function TrustSection() {
             </div>
           ))}
         </div>
-      </div>
+      </Reveal>
+    </section>
+  );
+}
+
+function BuiltFor() {
+  const builtForItems = [
+    {
+      icon: ShieldCheck,
+      title: "Security teams",
+      body: "Keep questionnaire answers grounded in current policies and evidence.",
+    },
+    {
+      icon: FileCheck2,
+      title: "Compliance leads",
+      body: "Trace each response back to the document it came from.",
+    },
+    {
+      icon: Sparkles,
+      title: "Founders and small teams",
+      body: "Work through first security reviews without a dedicated reviewer.",
+    },
+    {
+      icon: FileSpreadsheet,
+      title: "Sales and customer success",
+      body: "Keep customer questionnaires moving while the conversation is live.",
+    },
+  ];
+  return (
+    <section className="section-band builtfor-band">
+      <Reveal className="site-shell">
+        <SectionHeading
+          eyebrow="BUILT FOR"
+          title="Who feels the difference first."
+          body="Teams that answer security questionnaires as part of the deal."
+          centered
+        />
+        <div className="builtfor-grid">
+          {builtForItems.map(({ icon: Icon, title, body }) => (
+            <article className="builtfor-item" key={title}>
+              <div className="builtfor-icon">
+                <Icon />
+              </div>
+              <h3>{title}</h3>
+              <p>{body}</p>
+            </article>
+          ))}
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+function SecurityBand() {
+  const points = [
+    "Traffic is encrypted in transit over HTTPS.",
+    "Your documents are stored privately and kept separate for each account.",
+    "Only signed-in members of your workspace can reach your data.",
+    "A person reviews and approves every answer before it is exported.",
+    "Every draft shows the source document it came from.",
+  ];
+  return (
+    <section className="section-band security-band">
+      <Reveal className="site-shell security-layout">
+        <div className="security-copy">
+          <div className="eyebrow">
+            <span />
+            SECURITY AND PRIVACY
+          </div>
+          <h2>Built to keep your material yours.</h2>
+          <p>
+            Trustloop works with sensitive security documents. These are the
+            commitments the product is built on today.
+          </p>
+          <Link href="/security" className="text-link">
+            Read the security overview <ArrowRight />
+          </Link>
+        </div>
+        <ul className="security-list">
+          {points.map((point) => (
+            <li key={point}>
+              <ShieldCheck />
+              {point}
+            </li>
+          ))}
+        </ul>
+      </Reveal>
     </section>
   );
 }
@@ -949,10 +1159,12 @@ export function HomePage() {
   return (
     <>
       <Hero />
-      <Problems />
+      <ComparisonSection />
       <Features />
       <EvidenceSection />
       <HowItWorks />
+      <BuiltFor />
+      <SecurityBand />
       <TrustSection />
       <PricingSection />
       <FAQ />
