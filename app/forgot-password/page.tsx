@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Brand } from "@/components/marketing/brand";
+import { Brand } from "@/components/brand/logo";
+import { site } from "@/config/site";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -42,7 +43,7 @@ export default function ForgotPasswordPage() {
     <div className="auth-shell">
       <div className="auth-card">
         <div className="auth-brand">
-          <Brand />
+          <Brand size={24} />
         </div>
         <h1 className="auth-title">Reset your password</h1>
         <p className="auth-sub">
@@ -93,6 +94,12 @@ export default function ForgotPasswordPage() {
             <Link href="/login">Log in</Link>
           </p>
         </form>
+        <p className="auth-powered">
+          Powered by{" "}
+          <a href={site.rivoxUrl} target="_blank" rel="noopener noreferrer">
+            Rivox
+          </a>
+        </p>
       </div>
     </div>
   );

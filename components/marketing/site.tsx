@@ -14,7 +14,6 @@ import {
   FileCheck2,
   FileSpreadsheet,
   FileText,
-  Fingerprint,
   LockKeyhole,
   Menu,
   PanelLeft,
@@ -23,8 +22,9 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { Brand } from "@/components/marketing/brand";
+import { Brand, Logo } from "@/components/brand/logo";
 import { Reveal } from "@/components/marketing/reveal";
+import { site } from "@/config/site";
 
 const navItems = [
   { label: "Features", href: "/#features" },
@@ -196,7 +196,7 @@ export function Navbar() {
   return (
     <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
       <div className="site-shell nav-inner">
-        <Brand />
+        <Brand size={22} />
         <nav aria-label="Main navigation" className="desktop-nav">
           <div className="nav-pill">
             {navItems.map((item) => (
@@ -253,14 +253,14 @@ export function Footer() {
       <div className="site-shell">
         <div className="footer-top">
           <div className="footer-brand-block">
-            <Brand className="footer-brand" />
+            <Brand variant="dark" size={26} className="footer-brand" />
             <p>Security questionnaires, answered with confidence.</p>
             <p className="powered-by">
               Powered by{" "}
               <a
-                href="https://rivoxcloud.com"
+                href={site.rivoxUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Rivox <ArrowUpRight />
               </a>
@@ -294,10 +294,13 @@ export function Footer() {
           />
         </div>
         <div className="footer-bottom">
-          <span>© 2026 [COMPANY LEGAL NAME]. All rights reserved.</span>
           <span>
-            [CITY, COUNTRY] <span className="footer-dot">·</span>{" "}
-            <a href="mailto:[SUPPORT EMAIL]">[SUPPORT EMAIL]</a>
+            © 2026 {site.companyName}. {site.brandName} is a product of{" "}
+            {site.companyName}.
+          </span>
+          <span>
+            {site.cityCountry} <span className="footer-dot">·</span>{" "}
+            <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>
           </span>
         </div>
       </div>
@@ -451,9 +454,7 @@ export function ProductMockup() {
         <div className="product-layout">
           <aside className="product-sidebar">
             <div className="sidebar-logo">
-              <span>
-                <Fingerprint size={17} />
-              </span>
+              <Logo variant="tile" size={17} showWordmark={false} />
               Trustloop
             </div>
             <div className="workspace-label">WORKSPACE</div>
@@ -1469,11 +1470,17 @@ export function AboutPage() {
           </p>
           <p className="about-rivox">
             Trustloop is a Rivox product.{" "}
-            <a href="https://rivoxcloud.com" target="_blank" rel="noreferrer">
+            <a href="https://rivoxcloud.com" target="_blank" rel="noopener noreferrer">
               Visit Rivox <ArrowUpRight />
             </a>
           </p>
-          <p className="last-updated">Last updated: [DATE]</p>
+          <p>
+            Trustloop is provided by {site.companyName}, which owns the service
+            and its content, policies, and intellectual property.{" "}
+            {site.companyName} is completing its {site.companyStatus}; these
+            details will be updated here when it is complete.
+          </p>
+          <p className="last-updated">Last updated: {site.lastUpdated}</p>
         </article>
       </div>
     </main>
@@ -1495,8 +1502,8 @@ export function ContactPage() {
               <FileText />
             </div>
             <h2>Email the team</h2>
-            <a href="mailto:[SUPPORT EMAIL]">
-              [SUPPORT EMAIL] <ArrowUpRight />
+            <a href={`mailto:${site.supportEmail}`}>
+              {site.supportEmail} <ArrowUpRight />
             </a>
             <p>
               We reply to questions about early access, product details, and
@@ -1510,7 +1517,7 @@ export function ContactPage() {
             </p>
             <a
               className="button-dark form-send"
-              href="mailto:[SUPPORT EMAIL]?subject=Trustloop%20question"
+              href={`mailto:${site.supportEmail}?subject=Trustloop%20question`}
             >
               Write an email <ArrowRight />
             </a>
@@ -1520,7 +1527,7 @@ export function ContactPage() {
             </p>
           </div>
         </div>
-        <p className="last-updated">Last updated: [DATE]</p>
+        <p className="last-updated">Last updated: {site.lastUpdated}</p>
       </div>
     </main>
   );
@@ -1533,6 +1540,7 @@ export function SecurityPage() {
     "HTTPS is used for data in transit.",
     "AI answers are drafted only from your own uploaded documents and always reviewed by a human.",
     "Excerpts of documents are sent to third-party AI model providers to generate draft answers.",
+    "Trustloop runs on Supabase (database, storage, and account login), Vercel (hosting), OpenRouter and its routed model providers (AI drafting), and Paddle (payments).",
   ];
   return (
     <main className="inner-page">
@@ -1559,7 +1567,7 @@ export function SecurityPage() {
               certification.
             </p>
           </aside>
-          <p className="last-updated">Last updated: [DATE]</p>
+          <p className="last-updated">Last updated: {site.lastUpdated}</p>
         </article>
       </div>
     </main>
@@ -1571,66 +1579,93 @@ const legalContent: Record<
   { intro: string; sections: [string, string][] }
 > = {
   terms: {
-    intro: "These draft terms describe a framework for using Trustloop. Complete the placeholders and have this document reviewed before publication.",
+    intro: `These terms govern your use of ${site.brandName}, a service provided by ${site.companyName}. They should be reviewed by a legal professional before publication.`,
     sections: [
       [
         "1. About these terms",
-        "These terms are between [COMPANY LEGAL NAME], located in [CITY, COUNTRY] (\"Company\"), and the person or organization using Trustloop (\"Customer\"). The service is provided subject to these terms.",
+        `These terms are between ${site.companyName}, located in ${site.cityCountry} ("${site.companyName}" or the "Company"), and the person or organization using ${site.brandName} ("Customer"). ${site.companyName} is completing its ${site.companyStatus}; these details will be updated here when it is complete. The service is provided subject to these terms.`,
       ],
       [
-        "2. Using the service",
+        "2. Eligibility and business use",
+        `You must be at least 18 years old and able to enter into a binding agreement to use the service. ${site.brandName} is a business tool and may only be used for business purposes, not for personal, family, or household use.`,
+      ],
+      [
+        "3. Using the service",
         "Customer is responsible for its account, the documents it provides, and reviewing and approving questionnaire answers before sharing them. Customer must have the rights and permissions needed to upload and process its content.",
       ],
       [
-        "3. Customer content and AI",
-        "Trustloop uses documents provided by Customer to draft questionnaire responses. Excerpts of documents may be processed by third-party AI model providers. AI-generated drafts may be incomplete or inaccurate and must be reviewed by a person.",
+        "4. Customer content and AI",
+        `${site.brandName} uses documents provided by Customer to draft questionnaire responses. Excerpts of documents may be processed by third-party AI model providers. AI-generated drafts may be incomplete or inaccurate and must be reviewed by a person. ${site.companyName} retains all right, title, and interest in ${site.brandName}, including the site, the product, its content, policies, and intellectual property. Customer retains its rights in the documents it provides.`,
       ],
       [
-        "4. Fees and cancellation",
+        "5. Fees and cancellation",
         "Subscription prices, billing frequency, and cancellation terms are shown on the pricing page. Prices are in USD. Customer may cancel anytime.",
       ],
       [
-        "5. Availability and changes",
+        "6. Availability and changes",
         "The Company may update or modify the service. No specific uptime or uninterrupted availability is promised by this draft template.",
       ],
       [
-        "6. Contact",
-        "Questions about these terms may be directed to [SUPPORT EMAIL].",
+        "7. Assignment",
+        "The Company may assign or transfer these terms, in whole or in part, in connection with a merger, acquisition, reorganization, or sale of assets. Any successor or transferee will be bound by these terms, and Customer's agreement continues with any successor to the Company's business. Customer may not assign these terms without the Company's written consent.",
+      ],
+      [
+        "8. Governing law",
+        "[GOVERNING LAW AND COURTS]",
+      ],
+      [
+        "9. Contact",
+        `Questions about these terms may be directed to ${site.supportEmail}.`,
       ],
     ],
   },
   privacy: {
-    intro: "This draft privacy notice explains the types of information that may be handled when you use Trustloop. Have it reviewed and completed before publication.",
+    intro: `This notice explains how information is handled when you use ${site.brandName}, provided by ${site.companyName}. It should be reviewed by a legal professional before publication.`,
     sections: [
       [
         "1. Information we handle",
-        "Trustloop may handle account details, the documents and questionnaires you upload, and information you provide when contacting the Company. Replace this draft with a complete inventory before publishing.",
+        `${site.brandName} handles your account details (such as your email address), the documents and questionnaires you upload, and information you provide when contacting ${site.companyName}.`,
       ],
       [
         "2. How information is used",
-        "Information is used to provide and support Trustloop, draft questionnaire responses, and communicate about the service.",
+        `Information is used to provide and support ${site.brandName}, draft questionnaire responses, process payments, and communicate about the service.`,
       ],
       [
-        "3. Third-party AI processing",
-        "Excerpts of document text may be sent to third-party AI providers to generate draft answers. A person should review each answer before sharing it.",
+        "3. Service providers",
+        "The service relies on third-party providers: Supabase (database, file storage, and account login), Vercel (hosting), OpenRouter and its routed model providers (AI drafting), and Paddle (payments, acting as merchant of record). These providers process information only as needed to provide their services.",
       ],
       [
-        "4. Storage and security",
-        "Documents are stored privately per account, customer data is kept separate, and HTTPS is used in transit. Do not interpret this summary as a security certification.",
+        "4. Third-party AI processing",
+        `Excerpts of your documents are sent to third-party AI model providers to generate draft answers. ${site.companyName} does not train its own models on your documents. A person should review each answer before sharing it.`,
       ],
       [
-        "5. Retention and your choices",
-        "The Company should complete this section with its actual retention, deletion, and data access practices before publishing.",
+        "5. Storage and security",
+        "Documents are stored privately per account, customer data is kept separate between accounts, and HTTPS is used in transit. This summary is not a security certification.",
       ],
-      ["6. Contact", "For privacy questions, contact [SUPPORT EMAIL]."],
+      [
+        "6. Retention and deletion",
+        `Information is retained for as long as your account is active or as needed to provide the service, comply with legal obligations, and resolve disputes. You can request deletion of your documents and account data at any time by contacting ${site.supportEmail}.`,
+      ],
+      [
+        "7. Your rights",
+        `Depending on where you live, you may have the right to access, correct, export, or delete your personal information. Contact ${site.supportEmail} with a verified request and ${site.companyName} will respond.`,
+      ],
+      [
+        "8. Children",
+        `${site.brandName} is a business service and is not directed to children. It is not for use by anyone under 18.`,
+      ],
+      [
+        "9. Contact",
+        `For privacy questions, contact ${site.supportEmail}.`,
+      ],
     ],
   },
   refund: {
-    intro: "This draft refund policy is a starting point only. Complete the details and have it reviewed before publication.",
+    intro: `This refund policy explains how refund requests for ${site.brandName} are handled by ${site.companyName}. It should be reviewed by a legal professional before publication.`,
     sections: [
       [
         "1. Subscription fees",
-        "Subscription fees and billing periods are displayed on the Trustloop pricing page. Prices are shown in USD.",
+        `Subscription fees and billing periods are displayed on the ${site.brandName} pricing page. Prices are shown in USD and are billed through Paddle, the merchant of record.`,
       ],
       [
         "2. Cancellation",
@@ -1638,9 +1673,12 @@ const legalContent: Record<
       ],
       [
         "3. Refund requests",
-        "Contact [SUPPORT EMAIL] with your account and billing details to discuss a refund request. Any applicable refund will be assessed under the final published policy and applicable law.",
+        `Contact ${site.supportEmail} with your account and billing details to discuss a refund request. Refunds are processed through Paddle; any applicable refund will be assessed under the final published policy and applicable law.`,
       ],
-      ["4. Contact", "Questions about billing may be sent to [SUPPORT EMAIL]."],
+      [
+        "4. Contact",
+        `Questions about billing may be sent to ${site.supportEmail}.`,
+      ],
     ],
   },
 };
@@ -1672,7 +1710,7 @@ export function LegalPage({ kind }: { kind: "terms" | "privacy" | "refund" }) {
               <p>{body}</p>
             </section>
           ))}
-          <p className="last-updated">Last updated: [DATE]</p>
+          <p className="last-updated">Last updated: {site.lastUpdated}</p>
         </article>
       </div>
     </main>

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND_NAME } from "@/components/marketing/brand";
+import { Logo } from "@/components/brand/logo";
+import { site } from "@/config/site";
 
 const navItems = [
   {
@@ -174,26 +175,15 @@ export default function DashboardLayout({
       {/* Desktop sidebar */}
       <aside className="app-sidebar">
         <Link href="/dashboard" className="app-brand">
-          <span className="app-brand-mark">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 2.75l7.25 3.1v5.4c0 4.6-3.05 8.1-7.25 9.9-4.2-1.8-7.25-5.3-7.25-9.9v-5.4L12 2.75z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8.75 12.1l2.3 2.3 4.2-4.7"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          {BRAND_NAME}
+          <Logo variant="tile" size={20} />
         </Link>
         <NavList pathname={pathname} email={email} onNavigate={() => {}} />
+        <p className="app-powered">
+          Powered by{" "}
+          <a href={site.rivoxUrl} target="_blank" rel="noopener noreferrer">
+            Rivox
+          </a>
+        </p>
       </aside>
 
       {/* Mobile top bar */}
@@ -203,24 +193,7 @@ export default function DashboardLayout({
           className="app-brand"
           onClick={() => setMenuOpen(false)}
         >
-          <span className="app-brand-mark">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 2.75l7.25 3.1v5.4c0 4.6-3.05 8.1-7.25 9.9-4.2-1.8-7.25-5.3-7.25-9.9v-5.4L12 2.75z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8.75 12.1l2.3 2.3 4.2-4.7"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          {BRAND_NAME}
+          <Logo variant="tile" size={20} />
         </Link>
         <button
           onClick={() => setMenuOpen((open) => !open)}

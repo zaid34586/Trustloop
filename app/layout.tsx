@@ -22,9 +22,10 @@ export const metadata: Metadata = {
   description:
     "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",
   icons: {
-    icon: "/icon.svg",
+    icon: ["/icon.svg", "/favicon.ico"],
     apple: "/apple-icon.png",
   },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     title: "Trustloop - Security questionnaires, drafted from your own documents",
     description:
