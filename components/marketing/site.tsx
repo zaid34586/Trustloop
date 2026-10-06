@@ -919,6 +919,78 @@ function HowItWorks() {
     "Start a review from the customer's Excel questionnaire.",
     "Check sources, approve the drafts, and export your answers.",
   ];
+  const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [howActive, setHowActive] = useState(0);
+
+  useEffect(() => {
+    const els = stepRefs.current.filter(Boolean) as HTMLDivElement[];
+    if (!els.length || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = Number((entry.target as HTMLElement).dataset.step);
+            if (!Number.isNaN(idx)) setHowActive(idx);
+          }
+        }
+      },
+      { rootMargin: "-45% 0px -45% 0px" },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const panels = [
+    (
+      <>
+        <div className="how-panel-label">DOCUMENTS</div>
+        <ul className="how-docs">
+          {[
+            "Access control policy",
+            "Data protection policy",
+            "Incident response plan",
+          ].map((doc) => (
+            <li key={doc}>
+              <FileText />
+              <span>{doc}</span>
+              <Check className="how-check" size={14} />
+            </li>
+          ))}
+        </ul>
+      </>
+    ),
+    (
+      <>
+        <div className="how-panel-label">QUESTIONNAIRE</div>
+        <div className="how-file-card">
+          <FileSpreadsheet />
+          <div>
+            <b>Vendor security review.xlsx</b>
+            <small>4 questions</small>
+          </div>
+        </div>
+      </>
+    ),
+    (
+      <>
+        <div className="how-panel-label">REVIEW &amp; EXPORT</div>
+        <div className="how-review-rows">
+          <span className="status status-approved">
+            <Check size={11} /> Approved
+          </span>
+          <span className="status status-approved">
+            <Check size={11} /> Approved
+          </span>
+          <span className="status status-drafted">Drafted</span>
+          <span className="status status-not-found">Not found</span>
+        </div>
+        <div className="how-export">
+          <FileSpreadsheet /> Export Excel
+        </div>
+      </>
+    ),
+  ];
+
   return (
     <section id="how-it-works" className="section-band how-band">
       <Reveal className="site-shell how-layout">
@@ -927,17 +999,49 @@ function HowItWorks() {
           title="From questionnaire to reviewed answer."
           body="Keep each step visible, with your team making the final call."
         />
-        <div className="steps-list">
-          {steps.map((step, index) => (
-            <div className="step-row" key={step}>
-              <div className="step-number">0{index + 1}</div>
-              <div>
-                <h3>{step}</h3>
-                <p>{bodies[index]}</p>
-              </div>
-              <ArrowRight />
+        <div className="how-story">
+          <div className="steps-list">
+            <div className="how-progress" aria-hidden="true">
+              <span
+                style={{
+                  height: `${((howActive + 1) / steps.length) * 100}%`,
+                }}
+              />
             </div>
-          ))}
+            {steps.map((step, index) => (
+              <div
+                className={`step-row${index === howActive ? " is-active" : ""}`}
+                key={step}
+                data-step={index}
+                ref={(el) => {
+                  stepRefs.current[index] = el;
+                }}
+              >
+                <div className="step-number">0{index + 1}</div>
+                <div>
+                  <h3>{step}</h3>
+                  <p>{bodies[index]}</p>
+                </div>
+                <ArrowRight />
+              </div>
+            ))}
+          </div>
+          <div className="how-visual">
+            <div className="how-panel-stack">
+              {panels.map((panel, index) => (
+                <div
+                  key={index}
+                  className={`how-panel${index === howActive ? " is-active" : ""}`}
+                  aria-hidden={index !== howActive}
+                >
+                  {panel}
+                </div>
+              ))}
+            </div>
+            <p className="mockup-caption how-caption">
+              Sample data for illustration
+            </p>
+          </div>
         </div>
       </Reveal>
     </section>
@@ -1076,9 +1180,15 @@ function PricingToggle({
 }) {
   return (
     <div className="billing-control" role="group" aria-label="Billing frequency">
+      <span
+        className="billing-pill"
+        aria-hidden="true"
+        style={{ transform: yearly ? "translateX(100%)" : "translateX(0)" }}
+      />
       <button
         type="button"
         className={!yearly ? "selected" : ""}
+        aria-pressed={!yearly}
         onClick={() => setYearly(false)}
       >
         Monthly
@@ -1086,6 +1196,7 @@ function PricingToggle({
       <button
         type="button"
         className={yearly ? "selected" : ""}
+        aria-pressed={yearly}
         onClick={() => setYearly(true)}
       >
         Yearly <span>Save 20%</span>
@@ -1107,7 +1218,12 @@ function PricingCards({ yearly }: { yearly: boolean }) {
           <p className="plan-description">{plan.description}</p>
           <div className="plan-price">
             <span className="currency">$</span>
-            {yearly ? plan.annualMonthly : plan.monthly}
+            <span
+              className="price-value"
+              key={yearly ? "yearly" : "monthly"}
+            >
+              {yearly ? plan.annualMonthly : plan.monthly}
+            </span>
             <span className="per-month">/ month</span>
           </div>
           <p className="billing-note">
@@ -1187,7 +1303,7 @@ function PricingSection({ fullPage = false }: { fullPage?: boolean }) {
       id="pricing"
       className={`section-band pricing-band${fullPage ? " pricing-page-band" : ""}`}
     >
-      <div className="site-shell">
+      <Reveal className="site-shell">
         <SectionHeading
           eyebrow="SIMPLE, TRANSPARENT PRICING"
           title={
@@ -1201,7 +1317,7 @@ function PricingSection({ fullPage = false }: { fullPage?: boolean }) {
         <PricingToggle yearly={yearly} setYearly={setYearly} />
         <PricingCards yearly={yearly} />
         <ComparisonTable />
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -1209,14 +1325,14 @@ function PricingSection({ fullPage = false }: { fullPage?: boolean }) {
 function FAQ() {
   return (
     <section id="faq" className="section-band faq-band">
-      <div className="site-shell faq-layout">
+      <Reveal className="site-shell faq-layout">
         <SectionHeading
           eyebrow="GOOD QUESTIONS"
           title="A little more clarity."
           body="Have another question? Get in touch with the team."
         />
         <FaqList items={faqItems} />
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -1224,7 +1340,7 @@ function FAQ() {
 function FinalCTA() {
   return (
     <section className="cta-band">
-      <div className="site-shell cta-inner">
+      <Reveal className="site-shell cta-inner">
         <div>
           <div className="eyebrow">
             <span />
@@ -1235,7 +1351,7 @@ function FinalCTA() {
         <Link href="/signup" className="button-light">
           Get early access <ArrowRight />
         </Link>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -1276,7 +1392,7 @@ export function PricingPage() {
       </div>
       <PricingSection fullPage />
       <section className="inner-faq">
-        <div className="site-shell faq-layout">
+      <Reveal className="site-shell faq-layout">
           <SectionHeading
             eyebrow="PLAN DETAILS"
             title="Pricing questions."
@@ -1285,7 +1401,7 @@ export function PricingPage() {
             items={[faqItems[0], faqItems[2], faqItems[5]]}
             idPrefix="pricing-faq"
           />
-        </div>
+        </Reveal>
       </section>
       <FinalCTA />
     </main>
