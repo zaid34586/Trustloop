@@ -3,11 +3,18 @@ import { DEFAULT_LIMITS } from "./plans";
 
 // ============================================================
 // Shared AI helper. Every AI call in the app goes through
-// completeAi() / completeAiJson(), which run a PROVIDER CHAIN:
+// completeAi() / completeAiJson(), which run a PROVIDER CHAIN in
+// this order (first healthy provider wins):
 //
-//   Provider 1: AI_PROVIDER / AI_API_KEY / AI_MODEL (+ AI_MODEL_FALLBACKS)
-//   Provider 2 (optional): AI_P2_TYPE / AI_P2_API_KEY / AI_P2_MODEL
-//                           (+ AI_P2_BASE_URL for gemini/openai-compatible)
+//   slot 10 (optional): local Ollama     — OLLAMA_URL / OLLAMA_MODEL
+//   slot 11 (optional): cloud GPU Ollama — GPU_OLLAMA_URL / GPU_OLLAMA_MODEL
+//                                           (EC2, see lib/gpu.ts)
+//   slot  1 (optional): AI_PROVIDER / AI_API_KEY / AI_MODEL (+ AI_MODEL_FALLBACKS)
+//   slot  2 (optional): AI_P2_TYPE / AI_P2_API_KEY / AI_P2_MODEL
+//                          (+ AI_P2_BASE_URL for gemini/openai-compatible)
+//
+// At least one slot must be configured; Ollama slots count, so the
+// API keys are optional once a local/GPU Ollama URL is set.
 //
 // Behaviour:
 //   - Fail-closed user rate limiting (ai_usage): if the usage count
@@ -152,13 +159,37 @@ function sleep(ms: number): Promise<void> {
 // Configuration (provider 1 + optional provider 2)
 // ------------------------------------------------------------
 
+// Ollama slots (10 local / 11 cloud): OpenAI-compatible endpoints.
+const OLLAMA_DEFAULT_MODEL = "qwen2.5:14b-instruct";
+
+function ollamaSlot(slot: 10 | 11, url: string, keyEnv: string, modelEnv: string): AiProviderSlot {
+  return {
+    slot,
+    type: "openai-compatible",
+    // Ollama does not check the key unless OLLAMA/serve auth is set;
+    // a non-empty placeholder keeps the Authorization header valid.
+    apiKey: (process.env[keyEnv] ?? "").trim() || "ollama",
+    model: (process.env[modelEnv] ?? "").trim() || OLLAMA_DEFAULT_MODEL,
+    baseUrl: url,
+  };
+}
+
 export function getAiConfig(): AiConfig {
-  const apiKey = process.env.AI_API_KEY;
-  const model = process.env.AI_MODEL;
-  if (!apiKey || !model) {
+  const config = readPrimaryConfig();
+  if (!config) {
     throw new AiConfigError(
       "AI is not configured yet. Please set AI_API_KEY and AI_MODEL."
     );
+  }
+  return config;
+}
+
+/** Primary slot 1 config, or null when the env vars are absent. */
+function readPrimaryConfig(): AiConfig | null {
+  const apiKey = process.env.AI_API_KEY;
+  const model = process.env.AI_MODEL;
+  if (!apiKey || !model) {
+    return null;
   }
 
   const requested = (process.env.AI_PROVIDER ?? "").trim().toLowerCase();
@@ -209,54 +240,77 @@ function parseP2Type(raw: string): AiProviderType | null {
 }
 
 /**
- * The ordered provider chain: slot 1 always, slot 2 when fully
- * configured (AI_P2_TYPE + AI_P2_API_KEY + AI_P2_MODEL). Throws
- * AiConfigError when slot 1 is missing or slot 2 is half-configured
- * with an invalid type (a clear message beats silent ignoring).
+ * The ordered provider chain: Ollama local (slot 10) and cloud GPU
+ * (slot 11) when their URLs are set, then the API primary (slot 1)
+ * when configured, then slot 2 when fully configured (AI_P2_TYPE +
+ * AI_P2_API_KEY + AI_P2_MODEL). Throws AiConfigError when NOTHING
+ * is configured or when slot 2 is half-configured with an invalid
+ * type (a clear message beats silent ignoring).
  */
 export function getProviderChain(): AiProviderSlot[] {
-  const primary = getAiConfig();
+  const chain: AiProviderSlot[] = [];
 
-  const chain: AiProviderSlot[] = [
-    {
+  // Slot 10: local Ollama (dev machine / always-on box).
+  const localUrl = (process.env.OLLAMA_URL ?? "").trim().replace(/\/+$/, "");
+  if (localUrl) {
+    chain.push(ollamaSlot(10, localUrl, "OLLAMA_API_KEY", "OLLAMA_MODEL"));
+  }
+
+  // Slot 11: cloud GPU (AWS EC2 running Ollama).
+  const gpuUrl = (process.env.GPU_OLLAMA_URL ?? "").trim().replace(/\/+$/, "");
+  if (gpuUrl) {
+    chain.push(ollamaSlot(11, gpuUrl, "GPU_API_KEY", "GPU_OLLAMA_MODEL"));
+  }
+
+  // Slot 1: existing API primary (optional when an Ollama slot exists).
+  const primary = readPrimaryConfig();
+  if (primary) {
+    chain.push({
       slot: 1,
       type: primary.provider,
       apiKey: primary.apiKey,
       model: primary.model,
-    },
-  ];
+    });
+  }
 
+  // Slot 2: optional second API provider.
   const p2TypeRaw = (process.env.AI_P2_TYPE ?? "").trim();
   const p2Key = (process.env.AI_P2_API_KEY ?? "").trim();
   const p2Model = (process.env.AI_P2_MODEL ?? "").trim();
 
   const p2any = p2TypeRaw || p2Key || p2Model;
-  if (!p2any) return chain;
+  if (p2any) {
+    const p2Type = parseP2Type(p2TypeRaw);
+    if (!p2Type) {
+      throw new AiConfigError(
+        'AI_P2_TYPE must be "openrouter", "anthropic", "gemini" or "openai-compatible".'
+      );
+    }
+    if (!p2Key || !p2Model) {
+      throw new AiConfigError(
+        "Provider 2 is half-configured: AI_P2_TYPE, AI_P2_API_KEY and AI_P2_MODEL must all be set (or none at all)."
+      );
+    }
+    if (p2Type === "openai-compatible" && !process.env.AI_P2_BASE_URL) {
+      throw new AiConfigError(
+        "AI_P2_BASE_URL is required when AI_P2_TYPE is openai-compatible."
+      );
+    }
 
-  const p2Type = parseP2Type(p2TypeRaw);
-  if (!p2Type) {
-    throw new AiConfigError(
-      'AI_P2_TYPE must be "openrouter", "anthropic", "gemini" or "openai-compatible".'
-    );
-  }
-  if (!p2Key || !p2Model) {
-    throw new AiConfigError(
-      "Provider 2 is half-configured: AI_P2_TYPE, AI_P2_API_KEY and AI_P2_MODEL must all be set (or none at all)."
-    );
-  }
-  if (p2Type === "openai-compatible" && !process.env.AI_P2_BASE_URL) {
-    throw new AiConfigError(
-      "AI_P2_BASE_URL is required when AI_P2_TYPE is openai-compatible."
-    );
+    chain.push({
+      slot: 2,
+      type: p2Type,
+      apiKey: p2Key,
+      model: p2Model,
+      baseUrl: (process.env.AI_P2_BASE_URL ?? "").trim() || undefined,
+    });
   }
 
-  chain.push({
-    slot: 2,
-    type: p2Type,
-    apiKey: p2Key,
-    model: p2Model,
-    baseUrl: (process.env.AI_P2_BASE_URL ?? "").trim() || undefined,
-  });
+  if (chain.length === 0) {
+    throw new AiConfigError(
+      "AI is not configured yet. Set OLLAMA_URL (local Ollama), GPU_OLLAMA_URL (cloud GPU) or AI_API_KEY + AI_MODEL."
+    );
+  }
   return chain;
 }
 
@@ -302,6 +356,8 @@ function getRuntime(slot: number): ProviderRuntime {
 export type ProviderDebugInfo = {
   slot: number;
   configured: boolean;
+  /** Friendly name for the Ollama slots, null for the API slots. */
+  label: string | null;
   type: string | null;
   model: string | null;
   keySet: boolean;
@@ -313,15 +369,27 @@ export type ProviderDebugInfo = {
   requestsThisWindow: number;
 };
 
+function slotLabel(slot: number): string | null {
+  if (slot === 10) return "Ollama local";
+  if (slot === 11) return "GPU cloud";
+  return null;
+}
+
 export function getProviderDebugInfo(): ProviderDebugInfo[] {
   let chain: AiProviderSlot[] = [];
   try {
     chain = getProviderChain();
   } catch {
-    // Config error (missing P1 or half-configured P2): report what we
-    // can without failing the debug page. The existing AI
-    // configuration card shows the actual config error message.
+    // Config error (missing every provider or half-configured P2):
+    // report what we can without failing the debug page. The existing
+    // AI configuration card shows the actual config error message.
     const rows: ProviderDebugInfo[] = [];
+    if (process.env.OLLAMA_URL) {
+      rows.push(blankDebug(10, true, true));
+    }
+    if (process.env.GPU_OLLAMA_URL) {
+      rows.push(blankDebug(11, true, true));
+    }
     if (process.env.AI_API_KEY && process.env.AI_MODEL) {
       rows.push(blankDebug(1, true));
     }
@@ -337,6 +405,7 @@ export function getProviderDebugInfo(): ProviderDebugInfo[] {
     return {
       slot: slot.slot,
       configured: true,
+      label: slotLabel(slot.slot),
       type: slot.type,
       model: slot.model,
       keySet: Boolean(slot.apiKey),
@@ -353,11 +422,16 @@ export function getProviderDebugInfo(): ProviderDebugInfo[] {
   });
 }
 
-function blankDebug(slot: number, keySet: boolean): ProviderDebugInfo {
+function blankDebug(
+  slot: number,
+  keySet: boolean,
+  configured = false
+): ProviderDebugInfo {
   const state = getRuntime(slot);
   return {
     slot,
-    configured: false,
+    configured,
+    label: slotLabel(slot),
     type: null,
     model: null,
     keySet,
@@ -959,8 +1033,8 @@ async function execute(
   options: CompleteAiOptions,
   parse?: (text: string) => unknown
 ): Promise<ExecuteResult> {
-  // Fail fast if the AI is not configured at all.
-  getAiConfig();
+  // Fail fast if NO provider is configured (Ollama slots count).
+  getProviderChain();
 
   const limitedMessage = await checkRateLimit(options.supabase, options.userId);
   if (limitedMessage) {
