@@ -72,16 +72,31 @@ const navItems = [
   },
 ];
 
+const adminItem = {
+  href: "/dashboard/admin",
+  label: "Admin",
+  icon: (
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"
+    />
+  ),
+};
+
 function NavList({
   pathname,
   email,
+  isAdmin,
   onNavigate,
 }: {
   pathname: string;
   email: string | null;
+  isAdmin: boolean;
   onNavigate: () => void;
 }) {
   const router = useRouter();
+  const items = isAdmin ? [...navItems, adminItem] : navItems;
 
   async function handleLogout() {
     const supabase = createClient();
@@ -92,7 +107,7 @@ function NavList({
 
   return (
     <nav className="app-nav">
-      {navItems.map((item) => {
+      {items.map((item) => {
         const active =
           item.href === "/dashboard"
             ? pathname === "/dashboard"
@@ -156,17 +171,30 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Close the mobile menu on navigation.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Show the signed-in user's email at the bottom of the sidebar.
+  // Show the signed-in user's email at the bottom of the sidebar
+  // and the Admin link only for admin accounts.
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null);
+      const uid = data.user?.id;
+      if (uid) {
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", uid)
+          .maybeSingle()
+          .then(({ data: profile }) => {
+            setIsAdmin((profile?.role ?? "") === "admin");
+          });
+      }
     });
   }, []);
 
@@ -177,7 +205,12 @@ export default function DashboardLayout({
         <Link href="/dashboard" className="app-brand">
           <Logo variant="tile" size={20} />
         </Link>
-        <NavList pathname={pathname} email={email} onNavigate={() => {}} />
+        <NavList
+          pathname={pathname}
+          email={email}
+          isAdmin={isAdmin}
+          onNavigate={() => {}}
+        />
         <p className="app-powered">
           Powered by{" "}
           <a href={site.rivoxUrl} target="_blank" rel="noopener noreferrer">
@@ -240,6 +273,7 @@ export default function DashboardLayout({
           <NavList
             pathname={pathname}
             email={email}
+            isAdmin={isAdmin}
             onNavigate={() => setMenuOpen(false)}
           />
         </div>

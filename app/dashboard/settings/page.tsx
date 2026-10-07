@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { parseLimits, type Plan } from "@/lib/plans";
 import {
+  Badge,
   ErrorCard,
   PageHeader,
   Skeleton,
   SuccessCard,
   btnPrimary,
+  btnSmSecondary,
   inputClass,
   inputDisabledClass,
 } from "@/components/dashboard/ui";
@@ -22,6 +26,9 @@ export default function SettingsPage() {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
+  const [planKey, setPlanKey] = useState("trial");
+  const [activePlans, setActivePlans] = useState<Plan[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileState, setProfileState] = useState<SaveState>(null);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
@@ -49,7 +56,7 @@ export default function SettingsPage() {
 
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("full_name, company_name, role")
+        .select("full_name, company_name, role, plan")
         .eq("id", user.id)
         .single();
 
@@ -62,6 +69,32 @@ export default function SettingsPage() {
         setFullName(profile.full_name ?? "");
         setCompanyName(profile.company_name ?? "");
         setRole(profile.role ?? "");
+        setPlanKey(profile.plan ?? "trial");
+        setIsAdmin((profile.role ?? "") === "admin");
+      }
+
+      // Active plans (RLS: any signed-in user can read them).
+      const { data: plans } = await supabase
+        .from("plans")
+        .select("*")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (plans) {
+        setActivePlans(
+          (plans as Record<string, unknown>[]).map((row) => ({
+            id: String(row.id),
+            key: row.key as Plan["key"],
+            name: String(row.name ?? ""),
+            price_monthly: Number(row.price_monthly ?? 0),
+            price_yearly: Number(row.price_yearly ?? 0),
+            features: Array.isArray(row.features)
+              ? (row.features as unknown[]).map(String)
+              : [],
+            limits: parseLimits(row.limits),
+            active: Boolean(row.active),
+            sort_order: Number(row.sort_order ?? 0),
+          }))
+        );
       }
       setLoadingProfile(false);
     }
@@ -290,6 +323,91 @@ export default function SettingsPage() {
             </div>
           </form>
         )}
+      </div>
+
+      {/* Plan */}
+      <div className="mt-6 app-card sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-navy">Plan</h2>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Link href="/dashboard/admin" className={btnSmSecondary}>
+                Admin panel
+              </Link>
+            )}
+            <Link href="/pricing" className={btnSmSecondary}>
+              Upgrade
+            </Link>
+          </div>
+        </div>
+
+        {loadingProfile ? (
+          <div className="mt-4">
+            <Skeleton className="h-6 w-32" />
+          </div>
+        ) : (() => {
+          const current =
+            activePlans.find((plan) => plan.key === planKey) ?? null;
+          const limits = parseLimits(current?.limits ?? null);
+          const rows: { label: string; value: string }[] = [
+            {
+              label: "Documents",
+              value: limits.documents === null ? "Unlimited" : String(limits.documents),
+            },
+            {
+              label: "Questionnaires / month",
+              value:
+                limits.questionnaires_per_month === null
+                  ? "Unlimited"
+                  : String(limits.questionnaires_per_month),
+            },
+            {
+              label: "AI requests / day",
+              value:
+                limits.ai_requests_per_day === null
+                  ? "Unlimited"
+                  : String(limits.ai_requests_per_day),
+            },
+            {
+              label: "Seats",
+              value: limits.seats === null ? "Unlimited" : String(limits.seats),
+            },
+          ];
+          return (
+            <div className="mt-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge tone={current ? "primary" : "gray"}>
+                  {current ? current.name : planKey}
+                </Badge>
+                {current && current.price_monthly > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    ${current.price_monthly}/mo
+                  </span>
+                )}
+                {current && current.price_monthly === 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    Free
+                  </span>
+                )}
+              </div>
+              <dl className="mt-4 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+                {rows.map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-center justify-between gap-4 border-b border-border/60 pb-1"
+                  >
+                    <dt className="text-muted-foreground">{row.label}</dt>
+                    <dd className="font-medium text-navy">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Payments are not enabled yet — plans are assigned by an
+                administrator until checkout goes live.
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Password */}
