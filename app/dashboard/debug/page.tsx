@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getProviderDebugInfo } from "@/lib/ai";
 import { Badge, PageHeader } from "@/components/dashboard/ui";
 import RetrievalTest from "@/components/dashboard/retrieval-test";
 
@@ -25,6 +26,7 @@ export default async function DebugPage() {
 
   const apiKeySet = Boolean(process.env.AI_API_KEY);
   const modelSet = Boolean(process.env.AI_MODEL);
+  const providers = getProviderDebugInfo();
 
   return (
     <div>
@@ -70,6 +72,67 @@ export default async function DebugPage() {
             after editing) — see .env.example for working values.
           </p>
         ) : null}
+      </div>
+
+      <div className="mt-4 app-card">
+        <p className="text-sm font-medium text-muted-foreground">
+          AI providers (runtime state)
+        </p>
+        {providers.length === 0 ? (
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            No provider configured yet.
+          </p>
+        ) : (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {providers.map((provider) => (
+              <div
+                key={provider.slot}
+                className="rounded-lg border border-border/60 p-3 text-sm text-navy"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">
+                    Slot {provider.slot}
+                    {provider.type ? ` · ${provider.type}` : ""}
+                  </span>
+                  <Badge tone={provider.configured ? "green" : "red"}>
+                    {provider.configured ? "configured" : "not configured"}
+                  </Badge>
+                  <Badge tone={provider.keySet ? "green" : "red"}>
+                    key {provider.keySet ? "set" : "missing"}
+                  </Badge>
+                  {provider.cooldownActive ? (
+                    <Badge tone="red">cooldown</Badge>
+                  ) : (
+                    <Badge tone="green">ready</Badge>
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <span className="text-muted-foreground">Model</span>
+                  <span className="truncate" title={provider.model ?? ""}>
+                    {provider.model ?? "—"}
+                  </span>
+                  <span className="text-muted-foreground">Last error</span>
+                  <span>{provider.lastErrorCode ?? "—"}</span>
+                  <span className="text-muted-foreground">Cooldown until</span>
+                  <span>{provider.cooldownUntil ?? "—"}</span>
+                  <span className="text-muted-foreground">Cooldown reason</span>
+                  <span className="truncate" title={provider.cooldownReason ?? ""}>
+                    {provider.cooldownReason ?? "—"}
+                  </span>
+                  <span className="text-muted-foreground">Requests total</span>
+                  <span>{provider.requestsTotal}</span>
+                  <span className="text-muted-foreground">Last minute</span>
+                  <span>{provider.requestsThisWindow}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          Cooldowns are set automatically on 429 (rate limit / retry-after)
+          and on exhausted daily quota (rest of the UTC day). API keys are
+          never shown here or in server logs.
+        </p>
       </div>
 
       <div className="mt-4">
