@@ -134,18 +134,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const rows: {
-      questionnaire_id: string;
-      user_id: string;
-      row_number: number;
-      question_text: string;
-      status: "pending";
-      answer_text: null;
-      confidence: null;
-      sources: { file_name: string; excerpt: string }[];
-      edited_by_user: boolean;
-      approved_at: null;
-    }[] = [];
+    const rows: { row_number: number; question_text: string }[] = [];
     let totalFound = 0;
 
     for (let rowNumber = header_rows + 1; rowNumber <= sheet.rowCount; rowNumber++) {
@@ -160,17 +149,8 @@ export async function POST(request: Request) {
         text = text.slice(0, MAX_QUESTION_CHARS);
       }
       rows.push({
-        questionnaire_id,
-        user_id: user.id,
         row_number: rowNumber,
         question_text: text,
-        status: "pending",
-        answer_text: null,
-        confidence: null,
-        // Written explicitly so rows never depend on a column default.
-        sources: [],
-        edited_by_user: false,
-        approved_at: null,
       });
     }
 
@@ -185,71 +165,48 @@ export async function POST(request: Request) {
     }
 
     // ------------------------------------------------------------
-    // Idempotent write: re-running this endpoint REPLACES the old
-    // questions instead of failing or duplicating them.
-    //   1. delete any existing questions for this questionnaire
-    //   2. insert the freshly extracted rows
-    //   3. one UPDATE sets status + question count together
-    // On a failed insert we restore an empty, consistent state so a
-    // retry starts clean; a failed UPDATE leaves the rows in place
-    // and a retry re-runs the whole replace safely.
+    // One SECURITY INVOKER database function (see
+    // supabase/confirm_questionnaire.sql) does the whole write in a
+    // single transaction: verify ownership, delete the old questions,
+    // insert the new ones, and update the questionnaire status/count.
+    // Any failure rolls everything back, so a retry re-runs the
+    // replace safely and old questions are never half-deleted.
     // ------------------------------------------------------------
-    const { error: deleteError } = await supabase
-      .from("questions")
-      .delete()
-      .eq("questionnaire_id", questionnaire_id);
+    const { data: savedCount, error: rpcError } = await supabase.rpc(
+      "confirm_questionnaire",
+      {
+        p_questionnaire_id: questionnaire_id,
+        p_sheet_name: sheet_name,
+        p_question_col: question_col,
+        p_header_rows: header_rows,
+        p_questions: rows,
+      }
+    );
 
-    if (deleteError) {
-      return NextResponse.json(
-        { error: "Could not replace the existing questions. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    const { error: insertError } = await supabase
-      .from("questions")
-      .insert(rows);
-
-    if (insertError) {
-      // Keep the questionnaire consistent with "no questions yet".
-      await supabase
-        .from("questionnaires")
-        .update({
-          status: "uploaded",
-          total_questions: 0,
-          error_message: "Could not save the extracted questions.",
-        })
-        .eq("id", questionnaire_id);
+    if (rpcError) {
+      const detail = rpcError.message || "";
+      if (detail.includes("questionnaire not found")) {
+        return NextResponse.json(
+          { error: "Questionnaire not found." },
+          { status: 404 }
+        );
+      }
+      if (detail.includes("too many questions")) {
+        return NextResponse.json(
+          {
+            error: "This questionnaire has too many questions (max 200).",
+          },
+          { status: 422 }
+        );
+      }
       return NextResponse.json(
         { error: "Could not save the questions. Please try again." },
         { status: 500 }
       );
     }
 
-    const { error: updateError } = await supabase
-      .from("questionnaires")
-      .update({
-        sheet_name,
-        question_col,
-        header_rows,
-        status: "parsed",
-        total_questions: rows.length,
-        error_message: null,
-      })
-      .eq("id", questionnaire_id);
-
-    if (updateError) {
-      return NextResponse.json(
-        {
-          error:
-            "Questions were extracted but the questionnaire status could not be updated. Please try again.",
-        },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({
-      total: rows.length,
+      total: typeof savedCount === "number" ? savedCount : rows.length,
       truncated: totalFound > MAX_QUESTIONS,
       message:
         totalFound > MAX_QUESTIONS
