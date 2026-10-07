@@ -41,13 +41,11 @@ export const pricingPlans = [
     annualMonthly: 119,
     annual: 1428,
     features: [
-      "3 team members",
-      "5 questionnaires per month",
-      "20 documents",
-      "AI answers with sources",
+      "Document upload",
+      "AI-drafted answers with sources",
       "Review and approval",
       "Excel export",
-      "Email support",
+      "Ask page",
     ],
   },
   {
@@ -58,10 +56,11 @@ export const pricingPlans = [
     annual: 3348,
     popular: true,
     features: [
-      "10 team members",
-      "25 questionnaires per month",
-      "100 documents",
-      "Everything in Starter",
+      "Document upload",
+      "AI-drafted answers with sources",
+      "Review and approval",
+      "Excel export",
+      "Ask page",
       "Priority support — Coming soon",
     ],
   },
@@ -72,10 +71,11 @@ export const pricingPlans = [
     annualMonthly: 639,
     annual: 7668,
     features: [
-      "Unlimited team members",
-      "Unlimited questionnaires",
-      "500 documents",
-      "Everything in Growth",
+      "Document upload",
+      "AI-drafted answers with sources",
+      "Review and approval",
+      "Excel export",
+      "Ask page",
       "Onboarding call — Coming soon",
       "Dedicated support — Coming soon",
     ],
@@ -1257,12 +1257,12 @@ function PricingCards({ yearly }: { yearly: boolean }) {
 
 function ComparisonTable() {
   const comparison = [
-    ["Team members", "3", "10", "Unlimited"],
-    ["Questionnaires / month", "5", "25", "Unlimited"],
-    ["Documents", "20", "100", "500"],
-    ["AI answers with sources", "Included", "Included", "Included"],
-    ["Review, approval & Excel export", "Included", "Included", "Included"],
-    ["Support", "Email", "Priority", "Dedicated"],
+    ["Document upload", "Included", "Included", "Included"],
+    ["AI-drafted answers with sources", "Included", "Included", "Included"],
+    ["Review and approval", "Included", "Included", "Included"],
+    ["Excel export", "Included", "Included", "Included"],
+    ["Ask page", "Included", "Included", "Included"],
+    ["Support", "Email", "Priority — Coming soon", "Dedicated — Coming soon"],
   ];
   return (
     <div className="comparison-wrap">
