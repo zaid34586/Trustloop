@@ -283,7 +283,7 @@ export default function DashboardPage() {
           value={docsTotal}
           sub={docsReady !== null ? `${docsReady} ready` : undefined}
           icon={statIcons.documents}
-          iconClass="bg-sky text-cobalt"
+          iconClass="bg-sky text-primary-700"
         />
         <StatCard
           label="Questionnaires"
@@ -484,7 +484,7 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                         item.kind === "document"
-                          ? "bg-sky text-cobalt"
+                          ? "bg-sky text-primary-700"
                           : "bg-mint text-primary-700"
                       }`}
                     >

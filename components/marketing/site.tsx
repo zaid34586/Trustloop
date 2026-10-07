@@ -356,7 +356,7 @@ export function ProductMockup() {
     {
       question: "How often do you conduct penetration testing?",
       answer: "I could not find this in your documents.",
-      confidence: "None",
+      confidence: "none",
       status: "Not found",
       source: null as string | null,
       excerpt: null as string | null,
@@ -535,7 +535,7 @@ export function ProductMockup() {
                           <td className="question-cell">{row.question}</td>
                           <td
                             className={
-                              row.confidence === "None"
+                              row.confidence === "none"
                                 ? "not-found-answer"
                                 : "answer-cell"
                             }
@@ -550,7 +550,10 @@ export function ProductMockup() {
                               className={`confidence confidence-${row.confidence.toLowerCase()}`}
                             >
                               <i />
-                              {row.confidence}
+                              {row.confidence === "none"
+                                ? "No source"
+                                : row.confidence.charAt(0).toUpperCase() +
+                                  row.confidence.slice(1)}
                             </span>
                           </td>
                           <td>

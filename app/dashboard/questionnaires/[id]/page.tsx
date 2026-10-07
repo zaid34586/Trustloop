@@ -94,11 +94,11 @@ function StatusBadge({ status }: { status: string | null }) {
 
 function ConfidenceBadge({ confidence }: { confidence: string | null }) {
   if (!confidence) return null;
-  return (
-    <Badge tone={confidenceTones[confidence] ?? "gray"}>
-      {confidence.charAt(0).toUpperCase() + confidence.slice(1)}
-    </Badge>
-  );
+  const label =
+    confidence === "none"
+      ? "No source"
+      : confidence.charAt(0).toUpperCase() + confidence.slice(1);
+  return <Badge tone={confidenceTones[confidence] ?? "gray"}>{label}</Badge>;
 }
 
 type FilterKey = "all" | "drafted" | "approved" | "not_found" | "failed";
