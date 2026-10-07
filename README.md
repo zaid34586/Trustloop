@@ -32,7 +32,8 @@ It creates, from an empty database and in dependency order:
 - `questionnaires` + RLS (full CRUD)
 - `questions` + review columns (`edited_by_user`, `approved_at`) +
   `updated_at` trigger + RLS (full CRUD)
-- `ai_usage` (rate limiting: 100 AI calls/hour, 500/day) + RLS
+- `ai_usage` (rate limiting: 100 AI calls/hour + per-plan daily
+  limit — starter 200, growth 600, business 2000) + RLS
   (select/insert own rows) + `(user_id, created_at)` index
 - private storage buckets `documents` and `questionnaires` +
   per-bucket storage policies (own folder only)
@@ -151,5 +152,9 @@ API routes: `/api/ask`, `/api/documents/process`,
 `/api/questionnaires/preview`, `/api/questionnaires/confirm`,
 `/api/questionnaires/[id]/export`, `/api/questions/answer`.
 
-AI calls are rate limited per user: **100 requests/hour and 500/day**
-(counted in the `ai_usage` table); exceeding either returns HTTP 429.
+AI calls are rate limited per user: **100 requests/hour** and a
+**per-plan daily limit** (starter 200/day, growth 600/day, business
+2000/day; counted in the `ai_usage` table); exceeding either returns
+HTTP 429. Document and questionnaire uploads are limited per plan
+(25 documents / 15 questionnaires a month on starter, more on higher
+plans; unlimited on business).

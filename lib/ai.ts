@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DEFAULT_LIMITS } from "./plans";
 
 // ============================================================
 // Shared AI helper. Every AI call in the app goes through
@@ -113,7 +114,11 @@ const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 // request can carry up to 5 questions — so a 200-question
 // questionnaire (~40-50 requests) fits comfortably inside both limits.
 export const AI_HOURLY_LIMIT = 100;
-export const AI_DAILY_LIMIT = 500;
+// The DAILY limit is per plan (plans.limits.ai_requests_per_day:
+// starter 200 / growth 600 / business 2000, null = unlimited).
+// This constant is only the fallback when the plans table cannot be
+// read — never unlimited.
+export const AI_DAILY_LIMIT = DEFAULT_LIMITS.ai_requests_per_day ?? 200;
 
 // Shown when every provider is on cooldown/exhausted: the run stops
 // cleanly and the remaining questions stay pending.
@@ -443,6 +448,9 @@ async function checkRateLimit(
   const hourAgo = new Date(now - 60 * 60 * 1000).toISOString();
   const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
+  // Plan's daily allowance (cached ~1 min per user).
+  const dailyLimit = await getDailyAiLimit(supabase, userId);
+
   const [hourRes, dayRes] = await Promise.all([
     supabase
       .from("ai_usage")
@@ -465,10 +473,67 @@ async function checkRateLimit(
   if ((hourRes.count ?? 0) >= AI_HOURLY_LIMIT) {
     return `You have reached the AI limit of ${AI_HOURLY_LIMIT} requests per hour. Please try again in a little while.`;
   }
-  if ((dayRes.count ?? 0) >= AI_DAILY_LIMIT) {
-    return `You have reached the AI limit of ${AI_DAILY_LIMIT} requests per day. Please try again later.`;
+  if ((dayRes.count ?? 0) >= dailyLimit) {
+    return `You have reached your plan's daily AI limit of ${dailyLimit} requests. Please try again tomorrow, or upgrade your plan for a higher limit.`;
   }
   return null;
+}
+
+// ------------------------------------------------------------
+// Per-plan daily AI limit (plans.limits.ai_requests_per_day),
+// cached about a minute per user so each AI request does not pay
+// two extra queries. Any failure falls back to the conservative
+// starter limit — never unlimited.
+// ------------------------------------------------------------
+const dailyLimitCache = new Map<string, { limit: number; at: number }>();
+const DAILY_LIMIT_CACHE_MS = 60_000;
+const UNLIMITED = 2147483647;
+
+async function getDailyAiLimit(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<number> {
+  const now = Date.now();
+  const cached = dailyLimitCache.get(userId);
+  if (cached && now - cached.at < DAILY_LIMIT_CACHE_MS) {
+    return cached.limit;
+  }
+
+  let limit = DEFAULT_LIMITS.ai_requests_per_day ?? AI_DAILY_LIMIT;
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", userId)
+      .maybeSingle();
+    const planKey =
+      typeof profile?.plan === "string" && profile.plan ? profile.plan : "starter";
+
+    const { data: plan } = await supabase
+      .from("plans")
+      .select("limits")
+      .eq("key", planKey)
+      .maybeSingle();
+
+    if (plan) {
+      const raw = (plan.limits as Record<string, unknown> | null)
+        ?.ai_requests_per_day;
+      if (raw === null) {
+        limit = UNLIMITED; // admin set the plan to unlimited
+      } else if (
+        typeof raw === "number" &&
+        Number.isFinite(raw) &&
+        raw > 0
+      ) {
+        limit = Math.floor(raw);
+      }
+    }
+  } catch {
+    // keep the conservative fallback
+  }
+
+  dailyLimitCache.set(userId, { limit, at: now });
+  return limit;
 }
 
 async function recordAiCall(
