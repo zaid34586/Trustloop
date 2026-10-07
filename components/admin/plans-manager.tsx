@@ -154,7 +154,7 @@ function PlanCard({
   const handleDelete = async () => {
     if (
       !window.confirm(
-        `Delete the "${plan.name}" plan? Users on this plan fall back to trial limits.`
+        `Delete the "${plan.name}" plan? Users on this plan fall back to starter limits.`
       )
     ) {
       return;

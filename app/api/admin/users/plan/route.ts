@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
   if (!isPlanKey(body.plan)) {
     return NextResponse.json(
-      { error: "plan must be trial, starter, growth or business." },
+      { error: "plan must be starter, growth or business." },
       { status: 422 }
     );
   }

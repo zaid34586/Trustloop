@@ -26,7 +26,7 @@ export default function SettingsPage() {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
-  const [planKey, setPlanKey] = useState("trial");
+  const [planKey, setPlanKey] = useState("starter");
   const [activePlans, setActivePlans] = useState<Plan[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -69,7 +69,7 @@ export default function SettingsPage() {
         setFullName(profile.full_name ?? "");
         setCompanyName(profile.company_name ?? "");
         setRole(profile.role ?? "");
-        setPlanKey(profile.plan ?? "trial");
+        setPlanKey(profile.plan ?? "starter");
         setIsAdmin((profile.role ?? "") === "admin");
       }
 

@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // pricing plans (public.plans). Limits: null means unlimited.
 // ============================================================
 
-export type PlanKey = "trial" | "starter" | "growth" | "business";
+export type PlanKey = "starter" | "growth" | "business";
 
 export type PlanLimits = {
   documents: number | null;
@@ -36,15 +36,16 @@ export type Offer = {
   ends_at: string | null;
 };
 
-export const PLAN_KEYS: PlanKey[] = ["trial", "starter", "growth", "business"];
+export const PLAN_KEYS: PlanKey[] = ["starter", "growth", "business"];
 
-// Fallback when the plans table is missing or unreachable: the
-// smallest (trial) limits — never fail open to "unlimited".
+// Fallback when the plans table is missing or a user's plan row is
+// unknown: the smallest PAID (starter) limits — never fail open to
+// "unlimited" and there is no free tier.
 export const DEFAULT_LIMITS: PlanLimits = {
-  documents: 3,
-  questionnaires_per_month: 2,
-  ai_requests_per_day: 50,
-  seats: 1,
+  documents: 25,
+  questionnaires_per_month: 15,
+  ai_requests_per_day: 200,
+  seats: 3,
 };
 
 export function isPlanKey(value: unknown): value is PlanKey {
@@ -120,7 +121,7 @@ export function planByKey(plans: Plan[], key: string): Plan | null {
  * (never unlimited).
  */
 export function limitsForKey(plans: Plan[], key: string | null | undefined): PlanLimits {
-  const plan = planByKey(plans, key ?? "trial");
+  const plan = planByKey(plans, key ?? "starter");
   return plan ? plan.limits : DEFAULT_LIMITS;
 }
 

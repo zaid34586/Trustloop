@@ -108,7 +108,7 @@ export default function UsersManager() {
                 <td>
                   <select
                     className="app-select"
-                    value={PLAN_KEYS.includes(user.plan as PlanKey) ? user.plan : "trial"}
+                    value={PLAN_KEYS.includes(user.plan as PlanKey) ? user.plan : "starter"}
                     disabled={savingId === user.id}
                     onChange={(e) => handlePlanChange(user.id, e.target.value)}
                   >
