@@ -227,9 +227,17 @@ export default function QuestionnairesPage() {
       .single();
 
     if (questionnaire) {
-      await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from("questionnaires")
         .remove([questionnaire.file_path]);
+
+      if (storageError) {
+        setDeleting(false);
+        setDeleteError(
+          "Could not delete the file from storage. Please try again."
+        );
+        return;
+      }
     }
 
     // Cascade removes the questions rows.
