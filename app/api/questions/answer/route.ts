@@ -7,8 +7,9 @@ import {
   AiUnavailableError,
   completeAiJson,
   extractJsonArray,
-  getAiConfig,
+  getProviderChain,
 } from "@/lib/ai";
+import { ensureGpuRunning, touchActivity } from "@/lib/gpu";
 import {
   fetchUserChunks,
   selectChunks,
@@ -140,15 +141,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not logged in." }, { status: 401 });
   }
 
-  // Fail fast with a clear message if the AI env vars are missing.
+  // Fail fast with a clear message if NO AI provider is configured.
   try {
-    getAiConfig();
+    getProviderChain();
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof AiConfigError ? err.message : "AI is not configured." },
       { status: 500 }
     );
   }
+
+  // GPU lifecycle: refresh the shared heartbeat (idle timer) and,
+  // without waiting, ask the GPU to boot if its endpoint is down.
+  void touchActivity(supabase);
+  void ensureGpuRunning(supabase).catch(() => {});
 
   let body: { question_ids?: unknown };
   try {
