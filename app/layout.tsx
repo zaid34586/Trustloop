@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   ),
   title: "Trustloop - Security questionnaires, drafted from your own documents",
   description:
-    "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",
+    "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Answers stay drafts until your team approves them.",
   icons: {
     icon: ["/icon.svg", "/favicon.ico"],
     apple: "/apple-icon.png",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Trustloop - Security questionnaires, drafted from your own documents",
     description:
-      "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",
+      "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Answers stay drafts until your team approves them.",
     siteName: "Trustloop",
     type: "website",
   },
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Trustloop - Security questionnaires, drafted from your own documents",
     description:
-      "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Your team reviews and approves every response before sharing.",
+      "Trustloop drafts sourced answers to customer security questionnaires from your own documents. Answers stay drafts until your team approves them.",
   },
 };
 

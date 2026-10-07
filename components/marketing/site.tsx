@@ -86,7 +86,7 @@ export const faqItems = [
   {
     question: "What is Trustloop?",
     answer:
-      "Trustloop helps software teams draft answers to customer security questionnaires from their own company documents, then review and approve each answer before it is sent.",
+      "Trustloop helps software teams draft answers to customer security questionnaires from their own company documents, so the team can review and approve answers before anything is shared.",
   },
   {
     question: "Which files can I upload?",
@@ -101,7 +101,7 @@ export const faqItems = [
   {
     question: "Who reviews the answers?",
     answer:
-      "A person on your team reviews and approves each answer. Trustloop does not send answers to your customer on its own.",
+      "Answers start as drafts. A person on your team decides which answers to approve, and by default only approved answers are exported — drafts are included only if you choose to include them. Trustloop does not send answers to your customer on its own.",
   },
   {
     question: "How is my data handled?",
@@ -110,7 +110,8 @@ export const faqItems = [
   },
   {
     question: "Can I cancel anytime?",
-    answer: "The listed subscriptions can be cancelled at any time.",
+    answer:
+      "The listed subscriptions can be cancelled at any time. Payments are not enabled yet.",
   },
 ];
 
@@ -457,7 +458,7 @@ export function ProductMockup() {
               <Logo variant="tile" size={17} showWordmark={false} />
               Trustloop
             </div>
-            <div className="workspace-label">WORKSPACE</div>
+            <div className="workspace-label">ACCOUNT</div>
             {sidebarLinks.map(({ icon: Icon, label }) => (
               <div
                 className={`sidebar-item${label === "Questionnaires" ? " active" : ""}`}
@@ -470,7 +471,7 @@ export function ProductMockup() {
             <div className="sidebar-account">
               <div className="sidebar-account-avatar">AC</div>
               <div>
-                Acme Cloud<small>Team workspace</small>
+                Acme Cloud<small>Personal account</small>
               </div>
               <ChevronRight size={13} />
             </div>
@@ -1071,7 +1072,7 @@ function TrustSection() {
         <div className="trust-points">
           {[
             "AI drafts only from the documents you upload.",
-            "Every answer is reviewed and approved by a person.",
+            "Answers stay drafts until a person approves them.",
             "Each account's data is kept separate and private.",
             "If an answer isn't in your documents, Trustloop says so.",
           ].map((item) => (
@@ -1138,8 +1139,8 @@ function SecurityBand() {
   const points = [
     "Traffic is encrypted in transit over HTTPS.",
     "Your documents are stored privately and kept separate for each account.",
-    "Only signed-in members of your workspace can reach your data.",
-    "A person reviews and approves every answer before it is exported.",
+    "Only you, when signed in to your own account, can reach your data.",
+    "Answers stay drafts until a person approves them — by default, exports include approved answers only.",
     "Every draft shows the source document it came from.",
   ];
   return (
@@ -1292,7 +1293,9 @@ function ComparisonTable() {
           </tbody>
         </table>
       </div>
-      <p className="pricing-note">Prices in USD. Cancel anytime.</p>
+      <p className="pricing-note">
+        Prices in USD. Payments are not enabled yet.
+      </p>
     </div>
   );
 }
@@ -1538,9 +1541,9 @@ export function SecurityPage() {
     "Documents are stored privately per account.",
     "Each customer's data is kept separate from others.",
     "HTTPS is used for data in transit.",
-    "AI answers are drafted only from your own uploaded documents and always reviewed by a human.",
+    "AI answers are drafted only from your own uploaded documents and stay drafts until a person approves them; by default, only approved answers are exported.",
     "Excerpts of documents are sent to third-party AI model providers to generate draft answers.",
-    "Trustloop runs on Supabase (database, storage, and account login), Vercel (hosting), OpenRouter and its routed model providers (AI drafting), and Paddle (payments).",
+    "Trustloop runs on Supabase (database, storage, and account login), Vercel (hosting), OpenRouter and its routed model providers (AI drafting), and our payment provider. Payments are not enabled yet.",
   ];
   return (
     <main className="inner-page">
@@ -1603,7 +1606,7 @@ const legalContent: Record<
       ],
       [
         "6. Fees and cancellation",
-        "Subscription prices, billing frequency, and cancellation terms are shown on the pricing page. Prices are in USD. Customer may cancel anytime.",
+        "Subscription prices, billing frequency, and cancellation terms are shown on the pricing page. Prices are in USD. Payments are not enabled yet. Customer may cancel anytime once billing is enabled.",
       ],
       [
         "7. Availability and changes",
@@ -1644,7 +1647,7 @@ const legalContent: Record<
       ],
       [
         "2. How information is used",
-        `Information is used to provide and support ${site.brandName}, draft questionnaire responses, process payments, and communicate about the service.`,
+        `Information is used to provide and support ${site.brandName}, draft questionnaire responses, and communicate about the service. Payments are not enabled yet; if billing is introduced later, information may also be used to process payments.`,
       ],
       [
         "3. Legal basis (GDPR)",
@@ -1652,7 +1655,7 @@ const legalContent: Record<
       ],
       [
         "4. Service providers",
-        "The service relies on third-party providers: Supabase (database, file storage, and account login), Vercel (hosting), OpenRouter and its routed model providers (AI drafting), and Paddle (payments, acting as merchant of record). These providers process information only as needed to provide their services.",
+        "The service relies on third-party providers: Supabase (database, file storage, and account login), Vercel (hosting), OpenRouter and its routed model providers (AI drafting), and our payment provider. Payments are not enabled yet. These providers process information only as needed to provide their services.",
       ],
       [
         "5. Third-party AI processing",
