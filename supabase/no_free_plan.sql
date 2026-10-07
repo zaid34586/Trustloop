@@ -20,6 +20,11 @@
 
 begin;
 
+-- The plan-change trigger (prevent_plan_self_change) only lets
+-- service_role or an admin past it; this file runs as a migration
+-- with no JWT, so set the claims for this transaction only.
+set local request.jwt.claims to '{"role":"service_role"}';
+
 -- ------------------------------------------------------------
 -- 1. profiles.plan: default starter, migrate trial users
 -- ------------------------------------------------------------
