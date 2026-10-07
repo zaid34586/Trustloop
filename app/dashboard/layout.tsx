@@ -88,11 +88,13 @@ function NavList({
   pathname,
   email,
   isAdmin,
+  planLabel,
   onNavigate,
 }: {
   pathname: string;
   email: string | null;
   isAdmin: boolean;
+  planLabel: string | null;
   onNavigate: () => void;
 }) {
   const router = useRouter();
@@ -134,8 +136,18 @@ function NavList({
         );
       })}
 
-      {/* User + logout */}
+      {/* Plan + user + logout */}
       <div className="app-account">
+        {planLabel && (
+          <Link
+            href="/dashboard/settings"
+            onClick={onNavigate}
+            title="Your current plan — open Settings to manage it"
+            className="app-plan-badge"
+          >
+            {planLabel} plan
+          </Link>
+        )}
         {email && (
           <div className="app-account-email">
             <span className="app-avatar">{email.charAt(0)}</span>
@@ -172,6 +184,7 @@ export default function DashboardLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [planLabel, setPlanLabel] = useState<string | null>(null);
 
   // Close the mobile menu on navigation.
   useEffect(() => {
@@ -188,11 +201,18 @@ export default function DashboardLayout({
       if (uid) {
         supabase
           .from("profiles")
-          .select("role")
+          .select("role, plan")
           .eq("id", uid)
           .maybeSingle()
           .then(({ data: profile }) => {
             setIsAdmin((profile?.role ?? "") === "admin");
+            const plan =
+              typeof profile?.plan === "string" && profile.plan
+                ? profile.plan
+                : null;
+            setPlanLabel(
+              plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : null
+            );
           });
       }
     });
@@ -209,6 +229,7 @@ export default function DashboardLayout({
           pathname={pathname}
           email={email}
           isAdmin={isAdmin}
+          planLabel={planLabel}
           onNavigate={() => {}}
         />
         <p className="app-powered">
@@ -274,6 +295,7 @@ export default function DashboardLayout({
             pathname={pathname}
             email={email}
             isAdmin={isAdmin}
+            planLabel={planLabel}
             onNavigate={() => setMenuOpen(false)}
           />
         </div>
