@@ -4,6 +4,7 @@ import {
   AiConfigError,
   AiRateLimitError,
   AiRequestError,
+  AiUnavailableError,
   completeAi,
   getAiConfig,
 } from "@/lib/ai";
@@ -123,6 +124,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: err.message, message: err.message },
         { status: 429 }
+      );
+    }
+    if (err instanceof AiUnavailableError) {
+      // The usage count query failed — fail closed without calling the AI.
+      return NextResponse.json(
+        { error: err.message, message: err.message },
+        { status: 503 }
       );
     }
     if (err instanceof AiConfigError) {

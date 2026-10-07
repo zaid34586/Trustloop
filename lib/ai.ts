@@ -25,6 +25,12 @@ export class AiConfigError extends Error {}
 /** The user exceeded the hourly/daily AI limit (maps to HTTP 429). */
 export class AiRateLimitError extends Error {}
 
+/**
+ * The usage count query failed, so the limit cannot be verified.
+ * Fail closed: the AI is NOT called (maps to HTTP 503).
+ */
+export class AiUnavailableError extends Error {}
+
 /** The AI provider could not be reached or returned an error. */
 export class AiRequestError extends Error {
   /** HTTP status of the provider response, when there was one. */
@@ -82,7 +88,11 @@ function sleep(ms: number): Promise<void> {
  *   the model): yes.
  */
 function isRetryableError(err: unknown): boolean {
-  if (err instanceof AiRateLimitError || err instanceof AiConfigError) {
+  if (
+    err instanceof AiRateLimitError ||
+    err instanceof AiConfigError ||
+    err instanceof AiUnavailableError
+  ) {
     return false;
   }
   if (err instanceof AiRequestError && err.status !== undefined) {
@@ -163,8 +173,11 @@ async function checkRateLimit(
       .gte("created_at", dayAgo),
   ]);
 
-  // If counting fails we cannot enforce the limit; do not block the user.
-  if (hourRes.error || dayRes.error) return null;
+  // If counting fails the limit cannot be verified — fail closed and
+  // do not call the AI (503, surfaced as "try again in a moment").
+  if (hourRes.error || dayRes.error) {
+    throw new AiUnavailableError("Please try again in a moment.");
+  }
 
   if ((hourRes.count ?? 0) >= AI_HOURLY_LIMIT) {
     return `You have reached the AI limit of ${AI_HOURLY_LIMIT} requests per hour. Please try again in a little while.`;

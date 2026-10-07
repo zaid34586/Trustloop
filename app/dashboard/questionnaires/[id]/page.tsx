@@ -405,10 +405,15 @@ export default function QuestionnaireDetailPage() {
               data?.message ??
               "Answer generation failed. Please try again.";
             // 429 means the question was never attempted - it stays
-            // pending. Any other error stops the run so one outage
-            // cannot burn the whole questionnaire; questions that were
-            // not attempted stay pending for a later retry.
-            if (results.length === 0 && response.status >= 500) {
+            // pending. 503 with `unavailable` (rate-limit bookkeeping
+            // failed, fail-closed) is treated the same way. Any other
+            // error stops the run so one outage cannot burn the whole
+            // questionnaire; questions not attempted stay pending.
+            if (
+              results.length === 0 &&
+              response.status >= 500 &&
+              data?.unavailable !== true
+            ) {
               advance({
                 id,
                 status: "failed",

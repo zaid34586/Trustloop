@@ -4,6 +4,7 @@ import {
   AiConfigError,
   AiRateLimitError,
   AiRequestError,
+  AiUnavailableError,
   completeAiJson,
   extractJsonObject,
   getAiConfig,
@@ -139,6 +140,9 @@ export async function POST(request: Request) {
 
   // Set when the per-call rate limit kicks in mid-batch.
   let rateLimitedMessage: string | null = null;
+  // Set when the usage count query failed (fail-closed, no AI call) —
+  // reported as 503 so the UI keeps the questions pending, like 429.
+  let unavailableMessage: string | null = null;
   // Set when the AI service itself failed (config/network/provider error
   // other than rate limiting) — reported as a real error, never not_found.
   let aiServiceError = false;
@@ -209,6 +213,12 @@ export async function POST(request: Request) {
         // Rate limit: stop the batch without marking this question failed.
         if (err instanceof AiRateLimitError) {
           rateLimitedMessage = err.message;
+          break;
+        }
+        // Usage count query failed — fail closed the same way: stop the
+        // batch, keep the questions pending, do not call the AI.
+        if (err instanceof AiUnavailableError) {
+          unavailableMessage = err.message;
           break;
         }
         // Real AI failure (network/provider/config/parse): the outer
@@ -333,6 +343,20 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: rateLimitedMessage, message: rateLimitedMessage, results },
       { status: 429 }
+    );
+  }
+
+  // The usage count query failed (fail-closed): 503 with an
+  // `unavailable` flag so the UI keeps questions pending, not failed.
+  if (unavailableMessage) {
+    return NextResponse.json(
+      {
+        error: unavailableMessage,
+        message: unavailableMessage,
+        results,
+        unavailable: true,
+      },
+      { status: 503 }
     );
   }
 
