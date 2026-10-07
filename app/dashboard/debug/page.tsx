@@ -13,6 +13,14 @@ export default async function DebugPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Dev/diagnostic tool — admin accounts only.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profile?.role !== "admin") redirect("/dashboard");
+
   const [docsRes, chunksRes] = await Promise.all([
     supabase
       .from("documents")
