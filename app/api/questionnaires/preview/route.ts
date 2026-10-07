@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { readSheetPreview } from "@/lib/excel";
+import {
+  QUESTIONNAIRE_MAX_BYTES,
+  checkDownloadedSize,
+  checkMagicBytes,
+  verifyStoredFile,
+} from "@/lib/upload-checks";
 
 const PREVIEW_ROW_COUNT = 8;
 
@@ -30,7 +36,7 @@ export async function POST(request: Request) {
 
   const { data: questionnaire, error: qError } = await supabase
     .from("questionnaires")
-    .select("id, file_path, status")
+    .select("id, file_name, file_path, status")
     .eq("id", body.questionnaire_id)
     .eq("user_id", user.id)
     .single();
@@ -39,6 +45,26 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Questionnaire not found." },
       { status: 404 }
+    );
+  }
+
+  const tooLargeMessage = "This file is too large. Maximum size is 5 MB.";
+
+  // Server-side validation BEFORE downloading or parsing: .xlsx only
+  // and the object's size from storage metadata (UI checks are
+  // advisory only and can be bypassed).
+  const storedFailure = await verifyStoredFile(supabase, {
+    bucket: "questionnaires",
+    path: questionnaire.file_path,
+    fileName: questionnaire.file_name,
+    allowedExtensions: [".xlsx"],
+    maxBytes: QUESTIONNAIRE_MAX_BYTES,
+    tooLargeMessage,
+  });
+  if (storedFailure) {
+    return NextResponse.json(
+      { error: storedFailure.message },
+      { status: storedFailure.status }
     );
   }
 
@@ -53,10 +79,37 @@ export async function POST(request: Request) {
     );
   }
 
+  // Re-check size on the blob itself, still before any parsing.
+  const sizeFailure = checkDownloadedSize(file.size, {
+    maxBytes: QUESTIONNAIRE_MAX_BYTES,
+    tooLargeMessage,
+  });
+  if (sizeFailure) {
+    return NextResponse.json(
+      { error: sizeFailure.message },
+      { status: sizeFailure.status }
+    );
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  // .xlsx files are ZIP containers starting with "PK" — a renamed
+  // file of any other type is rejected before it reaches the parser.
+  if (!checkMagicBytes(new Uint8Array(buffer), "zip")) {
+    return NextResponse.json(
+      {
+        error:
+          "This file's content does not match its type. Please upload a valid Excel (.xlsx) file.",
+      },
+      { status: 400 }
+    );
+  }
+
   try {
     const ExcelJS = (await import("exceljs")).default;
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(await file.arrayBuffer());
+    await workbook.xlsx.load(arrayBuffer);
 
     const sheetNames = workbook.worksheets.map((ws) => ws.name);
     const sheet = body.sheet_name

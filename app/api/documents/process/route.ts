@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  DOCUMENT_MAX_BYTES,
+  checkDownloadedSize,
+  checkMagicBytes,
+  verifyStoredFile,
+} from "@/lib/upload-checks";
 
 const MAX_CHUNK_CHARS = 1000;
 const TARGET_CHUNK_CHARS = 900;
@@ -161,6 +167,29 @@ export async function POST(request: Request) {
       .eq("id", documentId);
   }
 
+  const tooLargeMessage = "This file is too large. Maximum size is 10 MB.";
+  const dot = doc.file_name.lastIndexOf(".");
+  const extension = dot === -1 ? "" : doc.file_name.slice(dot).toLowerCase();
+
+  // Server-side validation BEFORE downloading or parsing: allowed
+  // extension plus the object's size from storage metadata (the UI
+  // checks are advisory only and can be bypassed).
+  const storedFailure = await verifyStoredFile(supabase, {
+    bucket: "documents",
+    path: doc.file_path,
+    fileName: doc.file_name,
+    allowedExtensions: [".pdf", ".docx"],
+    maxBytes: DOCUMENT_MAX_BYTES,
+    tooLargeMessage,
+  });
+  if (storedFailure) {
+    await fail(storedFailure.message);
+    return NextResponse.json(
+      { error: storedFailure.message },
+      { status: storedFailure.status }
+    );
+  }
+
   // Mark as processing and clear any previous error.
   await supabase
     .from("documents")
@@ -188,10 +217,31 @@ export async function POST(request: Request) {
       );
     }
 
+    // Re-check size on the blob itself (covers metadata being stale),
+    // still before any parsing.
+    const sizeFailure = checkDownloadedSize(file.size, {
+      maxBytes: DOCUMENT_MAX_BYTES,
+      tooLargeMessage,
+    });
+    if (sizeFailure) {
+      await fail(sizeFailure.message);
+      return NextResponse.json(
+        { error: sizeFailure.message },
+        { status: sizeFailure.status }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
-    const extension = doc.file_name
-      .slice(doc.file_name.lastIndexOf("."))
-      .toLowerCase();
+
+    // Content must match the declared type: PDFs carry "%PDF",
+    // DOCX files are ZIP containers starting with "PK".
+    const magicKind = extension === ".pdf" ? "pdf" : "zip";
+    if (!checkMagicBytes(buffer, magicKind)) {
+      const message =
+        "This file's content does not match its type. Please upload a valid PDF or Word (.docx) file.";
+      await fail(message);
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
 
     let text = "";
     if (extension === ".pdf" || doc.file_type === "application/pdf") {
