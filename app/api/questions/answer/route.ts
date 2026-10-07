@@ -6,7 +6,7 @@ import {
   AiRequestError,
   AiUnavailableError,
   completeAiJson,
-  extractJsonObject,
+  extractJsonArray,
   getAiConfig,
 } from "@/lib/ai";
 import {
@@ -20,6 +20,16 @@ export const maxDuration = 60;
 
 const NOT_FOUND_ANSWER = "I could not find this in your documents.";
 
+// Up to 5 questions per AI request; the client sends at most 2
+// requests at a time, so one run makes 1-2 AI calls instead of one
+// per question. One ai_usage row is recorded per AI request.
+const BATCH_LIMIT = 5;
+
+// Stop starting new AI calls once the route's time budget is spent:
+// remaining questions stay pending instead of getting the whole
+// function killed by maxDuration (60s).
+const ROUTE_BUDGET_MS = 48_000;
+
 const SYSTEM_PROMPT = `You are Trustloop, an assistant that drafts answers to customer security questionnaire questions using only the user's own security documents.
 
 Rules:
@@ -30,7 +40,10 @@ Rules:
 - Keep answers under 80 words.
 - If the answer is not in the excerpts, set found to false.
 - "sources" must list the numbers of the excerpts you actually used for the answer, exactly as they appear in [1], [2], ... Use [] when found is false.
-- Respond with ONLY this JSON, no other text: {"found": true|false, "answer": "...", "confidence": "high|medium|low", "sources": [1, 2]}`;
+- Every question has its OWN excerpt list and the excerpt numbers restart at [1] for each question.
+- Respond with ONLY a JSON array, no other text. One object per question, in the order the questions appear:
+[{"id": "<question id>", "found": true, "answer": "...", "confidence": "high|medium|low", "sources": [1, 2]}]
+- Include EVERY question id you were given exactly once. Never omit an id, never invent an id, never merge two questions.`;
 
 type AiResult = {
   found: boolean;
@@ -39,28 +52,76 @@ type AiResult = {
   sources: number[];
 };
 
-function parseAiJson(raw: string): AiResult {
-  // extractJsonObject strips thinking blocks and code fences, then
-  // returns the first JSON object found in the text.
-  const parsed = JSON.parse(extractJsonObject(raw));
-  if (typeof parsed.found !== "boolean" || typeof parsed.answer !== "string") {
-    throw new Error("Unexpected JSON shape in the AI response.");
-  }
-  const confidence = ["high", "medium", "low"].includes(parsed.confidence)
-    ? parsed.confidence
+type QuestionRow = {
+  id: string;
+  questionnaire_id: string;
+  question_text: string;
+};
+
+type AnswerResult = {
+  id: string;
+  status: string;
+  answer_text: string | null;
+  confidence: string | null;
+  sources: { file_name: string; excerpt: string }[];
+  error?: string;
+};
+
+/** Normalized form used to match identical questions for reuse. */
+function normalizeQuestion(text: string): string {
+  return text.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Validates one element of the batched response. Invalid elements
+ * are dropped (they become "missing" and are re-asked), never
+ * guessed at.
+ */
+function validateBatchElement(
+  row: unknown,
+  requested: Set<string>
+): { id: string; value: AiResult } | null {
+  if (!row || typeof row !== "object") return null;
+  const record = row as Record<string, unknown>;
+
+  const id = typeof record.id === "string" ? record.id : "";
+  if (!id || !requested.has(id)) return null;
+  if (typeof record.found !== "boolean") return null;
+
+  const answer = typeof record.answer === "string" ? record.answer.trim() : "";
+  if (record.found && !answer) return null;
+
+  const confidence = ["high", "medium", "low"].includes(
+    String(record.confidence)
+  )
+    ? String(record.confidence)
     : "medium";
-  const sources = Array.isArray(parsed.sources)
-    ? parsed.sources.filter(
+
+  const sources = Array.isArray(record.sources)
+    ? record.sources.filter(
         (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 1
       )
     : [];
-  return { found: parsed.found, answer: parsed.answer, confidence, sources };
+
+  return {
+    id,
+    value: {
+      found: record.found,
+      answer,
+      confidence,
+      sources,
+    },
+  };
 }
 
-/** Short, user-safe reason for a per-question failure (logged server-side). */
+/**
+ * Short, user-safe reason for a per-question failure (logged
+ * server-side). Never includes prompts or document text.
+ */
 function failureReason(err: unknown): string {
   if (err instanceof AiRequestError) return err.message;
-  if (err instanceof Error && /JSON/i.test(err.message)) {
+  if (err instanceof AiConfigError) return err.message;
+  if (err instanceof Error && /JSON|array/i.test(err.message)) {
     return "The AI returned an unreadable response.";
   }
   if (err instanceof Error && err.message === "Could not save the answer.") {
@@ -99,79 +160,37 @@ export async function POST(request: Request) {
   const ids = Array.isArray(body.question_ids)
     ? body.question_ids.filter((id): id is string => typeof id === "string")
     : [];
-  if (ids.length === 0 || ids.length > 3) {
+  if (ids.length === 0 || ids.length > BATCH_LIMIT) {
     return NextResponse.json(
-      { error: "Provide between 1 and 3 question ids." },
+      { error: `Provide between 1 and ${BATCH_LIMIT} question ids.` },
       { status: 400 }
     );
   }
 
-  // App-side retrieval: read the user's chunks once through the
-  // session client (RLS applies), rank per question in lib/retrieval.
-  // A DB failure is a real error — never a fake "not_found".
-  let allChunks: UserChunk[];
-  try {
-    allChunks = await fetchUserChunks(supabase, user.id);
-  } catch (err) {
-    console.error(
-      "[api/questions/answer] chunk retrieval failed:",
-      err instanceof Error ? err.message : String(err)
-    );
+  const results: AnswerResult[] = [];
+  const deadline = Date.now() + ROUTE_BUDGET_MS;
+
+  // Load the requested rows with an explicit ownership filter (RLS
+  // also scopes this).
+  const { data: loaded, error: loadError } = await supabase
+    .from("questions")
+    .select("id, questionnaire_id, question_text")
+    .in("id", ids)
+    .eq("user_id", user.id);
+
+  if (loadError) {
     return NextResponse.json(
-      { error: "Could not search your documents. Please try again." },
+      { error: "Could not load these questions. Please try again." },
       { status: 500 }
     );
   }
-  if (allChunks.length === 0) {
-    return NextResponse.json(
-      { error: "Upload and process a document first" },
-      { status: 400 }
-    );
-  }
 
-  const results: {
-    id: string;
-    status: string;
-    answer_text: string | null;
-    confidence: string | null;
-    sources: { file_name: string; excerpt: string }[];
-    error?: string;
-  }[] = [];
-
-  // Set when the per-call rate limit kicks in mid-batch.
-  let rateLimitedMessage: string | null = null;
-  // Set when the usage count query failed (fail-closed, no AI call) —
-  // reported as 503 so the UI keeps the questions pending, like 429.
-  let unavailableMessage: string | null = null;
-  // Set when the AI service itself failed (config/network/provider error
-  // other than rate limiting) — reported as a real error, never not_found.
-  let aiServiceError = false;
-
-  // Stop starting new AI calls once the route's time budget is spent:
-  // remaining questions stay pending instead of getting the whole
-  // function killed by maxDuration (60s).
-  const deadline = Date.now() + 50_000;
+  const loadedById = new Map<string, QuestionRow>(
+    (loaded ?? []).map((row) => [row.id, row as QuestionRow])
+  );
 
   for (const id of ids) {
-    if (Date.now() > deadline) {
-      console.warn(
-        `[api/questions/answer] time budget exceeded, skipping ${ids.length - results.length} question(s)`
-      );
-      break;
-    }
-
-    // Ownership: RLS also scopes this, but we need the row anyway.
-    const { data: question, error: qError } = await supabase
-      .from("questions")
-      .select("id, questionnaire_id, question_text")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (qError || !question) {
-      console.error(
-        `[api/questions/answer] question=${id} failed: could not load it (${qError?.message ?? "not found"})`
-      );
+    if (!loadedById.has(id)) {
       results.push({
         id,
         status: "failed",
@@ -180,152 +199,310 @@ export async function POST(request: Request) {
         sources: [],
         error: "Could not load this question.",
       });
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Reuse: an identical (normalized) question the user already
+  // APPROVED is copied as Drafted — no AI call, no usage row.
+  // ------------------------------------------------------------
+  const { data: approvedRows } = await supabase
+    .from("questions")
+    .select("question_text, answer_text, confidence, sources")
+    .eq("user_id", user.id)
+    .eq("status", "approved")
+    .not("answer_text", "is", null)
+    .limit(2000);
+
+  const approvedByNorm = new Map<string, AnswerResult>();
+  for (const row of approvedRows ?? []) {
+    const key = normalizeQuestion(row.question_text ?? "");
+    if (!key || approvedByNorm.has(key)) continue;
+    approvedByNorm.set(key, {
+      id: "",
+      status: "drafted",
+      answer_text: row.answer_text,
+      confidence: row.confidence ?? "medium",
+      sources: Array.isArray(row.sources)
+        ? row.sources.map((s: { file_name?: string; excerpt?: string }) => ({
+            file_name: s?.file_name ?? "",
+            excerpt: s?.excerpt ?? "",
+          }))
+        : [],
+    });
+  }
+
+  const aiNeeded: QuestionRow[] = [];
+  for (const question of loadedById.values()) {
+    const reused = approvedByNorm.get(normalizeQuestion(question.question_text));
+    if (!reused) {
+      aiNeeded.push(question);
       continue;
     }
+    const { error: reuseError } = await supabase
+      .from("questions")
+      .update({
+        answer_text: reused.answer_text,
+        confidence: reused.confidence,
+        sources: reused.sources,
+        status: "drafted",
+      })
+      .eq("id", question.id)
+      .eq("user_id", user.id);
 
+    if (reuseError) {
+      // Could not save the reuse — fall back to the AI path.
+      aiNeeded.push(question);
+      continue;
+    }
+    results.push({ ...reused, id: question.id });
+  }
+
+  // ------------------------------------------------------------
+  // AI path: retrieval once, then batches of up to 5 questions in
+  // ONE AI request each, with one re-ask for missing/invalid items.
+  // ------------------------------------------------------------
+  let rateLimitedMessage: string | null = null;
+  let unavailableMessage: string | null = null;
+  let aiServiceError = false;
+  let serviceErrorMessage = "AI service error, please try again";
+
+  if (aiNeeded.length > 0) {
+    let allChunks: UserChunk[];
     try {
-      // App-side ranking: <=12 chunks -> all of them; otherwise the
-      // top 6 by keyword overlap. Non-empty whenever any chunk exists,
-      // so the AI is always called.
-      const topChunks = selectChunks(allChunks, question.question_text);
-
-      const excerpts = topChunks
-        .map(
-          (chunk, i) => `[${i + 1}] File: ${chunk.file_name}\n${chunk.content}`
-        )
-        .join("\n\n---\n\n");
-
-      let parsed: AiResult | null = null;
-      // The parse callback runs inside the retry loop: if the output
-      // cannot be parsed as the expected JSON, the next model is tried.
-      try {
-        parsed = await completeAiJson<AiResult>({
-          supabase,
-          userId: user.id,
-          route: "/api/questions/answer",
-          system: SYSTEM_PROMPT,
-          prompt: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestionnaire question: ${question.question_text}`,
-          maxTokens: 300,
-          temperature: 0.2,
-          parse: parseAiJson,
-        });
-      } catch (err) {
-        // Rate limit: stop the batch without marking this question failed.
-        if (err instanceof AiRateLimitError) {
-          rateLimitedMessage = err.message;
-          break;
-        }
-        // Usage count query failed — fail closed the same way: stop the
-        // batch, keep the questions pending, do not call the AI.
-        if (err instanceof AiUnavailableError) {
-          unavailableMessage = err.message;
-          break;
-        }
-        // Real AI failure (network/provider/config/parse): the outer
-        // catch logs it with the reason and marks this question failed.
-        aiServiceError = true;
-        throw err;
-      }
-
-      if (!parsed || !parsed.found || !parsed.answer.trim()) {
-        const { error: updateError } = await supabase
-          .from("questions")
-          .update({
-            answer_text: NOT_FOUND_ANSWER,
-            confidence: "none",
-            sources: [],
-            status: "not_found",
-          })
-          .eq("id", id)
-          .eq("user_id", user.id);
-
-        if (updateError) throw new Error("Could not save the answer.");
-        results.push({
-          id,
-          status: "not_found",
-          answer_text: NOT_FOUND_ANSWER,
-          confidence: "none",
-          sources: [],
-        });
-      } else {
-        // Save only the excerpts the AI said it used (structured
-        // "sources" numbers), deduplicated and in the order given.
-        const chosenIndexes = [...new Set(parsed.sources)].filter(
-          (n) => n >= 1 && n <= topChunks.length
-        );
-        const sources = chosenIndexes.map((n) => ({
-          file_name: topChunks[n - 1].file_name,
-          excerpt: trimExcerpt(topChunks[n - 1].content),
-        }));
-
-        const { error: updateError } = await supabase
-          .from("questions")
-          .update({
-            answer_text: parsed.answer.trim(),
-            confidence: parsed.confidence,
-            sources,
-            status: "drafted",
-          })
-          .eq("id", id)
-          .eq("user_id", user.id);
-
-        if (updateError) throw new Error("Could not save the answer.");
-        results.push({
-          id,
-          status: "drafted",
-          answer_text: parsed.answer.trim(),
-          confidence: parsed.confidence,
-          sources,
-        });
-      }
+      allChunks = await fetchUserChunks(supabase, user.id);
     } catch (err) {
-      // One failure must not stop the other questions in the batch —
-      // unless the AI service itself is down (aiServiceError), in which
-      // case we stop after marking this question failed. Every failure
-      // is logged with its reason so production runs can be diagnosed.
-      const reason = failureReason(err);
-      const status = err instanceof AiRequestError ? err.status : undefined;
-      const detail = err instanceof AiRequestError ? err.detail : undefined;
       console.error(
-        `[api/questions/answer] question=${id} failed (status=${status ?? "n/a"}): ${reason}${detail ? ` — ${detail}` : ""}`
+        "[api/questions/answer] chunk retrieval failed:",
+        err instanceof Error ? err.message : String(err)
       );
+      return NextResponse.json(
+        { error: "Could not search your documents. Please try again." },
+        { status: 500 }
+      );
+    }
+    if (allChunks.length === 0) {
+      return NextResponse.json(
+        { error: "Upload and process a document first" },
+        { status: 400 }
+      );
+    }
+
+    const chunksByQuestion = new Map<string, UserChunk[]>();
+    const excerptsFor = (question: QuestionRow): UserChunk[] => {
+      const existing = chunksByQuestion.get(question.id);
+      if (existing) return existing;
+      const top = selectChunks(allChunks, question.question_text);
+      chunksByQuestion.set(question.id, top);
+      return top;
+    };
+
+    const batches: QuestionRow[][] = [];
+    for (let i = 0; i < aiNeeded.length; i += BATCH_LIMIT) {
+      batches.push(aiNeeded.slice(i, i + BATCH_LIMIT));
+    }
+
+    /** One AI request for a batch; validation runs inside the retry
+     *  loop so unusable output triggers the provider chain. */
+    const requestBatch = async (
+      batch: QuestionRow[]
+    ): Promise<Map<string, AiResult>> => {
+      const requested = new Set(batch.map((question) => question.id));
+      const prompt = batch
+        .map((question, index) => {
+          const excerpts = excerptsFor(question)
+            .map(
+              (chunk, i) =>
+                `[${i + 1}] File: ${chunk.file_name}\n${chunk.content}`
+            )
+            .join("\n\n---\n\n");
+          return `Question ${index + 1} (id: ${question.id})\n\nDocument excerpts:\n\n${excerpts}\n\n---\n\nQuestion: ${question.question_text}`;
+        })
+        .join("\n\n===\n\n");
+
+      return completeAiJson<Map<string, AiResult>>({
+        supabase,
+        userId: user.id,
+        route: "/api/questions/answer",
+        system: SYSTEM_PROMPT,
+        prompt,
+        maxTokens: 1200,
+        temperature: 0.2,
+        parse: (text) => {
+          const parsed = JSON.parse(extractJsonArray(text));
+          if (!Array.isArray(parsed)) {
+            throw new Error("Expected a JSON array from the AI.");
+          }
+          const out = new Map<string, AiResult>();
+          for (const row of parsed) {
+            const valid = validateBatchElement(row, requested);
+            if (valid && !out.has(valid.id)) out.set(valid.id, valid.value);
+          }
+          if (out.size === 0) {
+            throw new Error("No valid answers in the AI response.");
+          }
+          return out;
+        },
+      });
+    };
+
+    /** Saves one validated result; DB failures become "failed". */
+    const saveResult = async (
+      question: QuestionRow,
+      value: AiResult
+    ): Promise<AnswerResult> => {
+      const status = value.found && value.answer ? "drafted" : "not_found";
+      const answerText = status === "drafted" ? value.answer : NOT_FOUND_ANSWER;
+      const confidence = status === "drafted" ? value.confidence : "none";
+      const sources =
+        status === "drafted"
+          ? [...new Set(value.sources)]
+              .filter((n) => n >= 1 && n <= (chunksByQuestion.get(question.id)?.length ?? 0))
+              .map((n) => {
+                const chunk = chunksByQuestion.get(question.id)![n - 1];
+                return {
+                  file_name: chunk.file_name,
+                  excerpt: trimExcerpt(chunk.content),
+                };
+              })
+          : [];
+
+      const { error: updateError } = await supabase
+        .from("questions")
+        .update({
+          answer_text: answerText,
+          confidence,
+          sources,
+          status,
+        })
+        .eq("id", question.id)
+        .eq("user_id", user.id);
+
+      if (updateError) {
+        return {
+          id: question.id,
+          status: "failed",
+          answer_text: null,
+          confidence: null,
+          sources: [],
+          error: "Could not save the answer.",
+        };
+      }
+      return { id: question.id, status, answer_text: answerText, confidence, sources };
+    };
+
+    const markFailed = async (
+      question: QuestionRow,
+      reason: string
+    ): Promise<void> => {
       const { error: updateError } = await supabase
         .from("questions")
         .update({ status: "failed" })
-        .eq("id", id)
+        .eq("id", question.id)
         .eq("user_id", user.id);
       if (updateError) {
         console.error(
-          `[api/questions/answer] question=${id} could not be marked failed: ${updateError.message}`
+          `[api/questions/answer] question=${question.id} could not be marked failed`
         );
       }
       results.push({
-        id,
+        id: question.id,
         status: "failed",
         answer_text: null,
         confidence: null,
         sources: [],
         error: reason,
       });
-    }
+    };
 
-    if (aiServiceError) break;
+    /** Classifies a thrown AI error; returns true when the run must stop. */
+    const classifyStop = (err: unknown): boolean => {
+      if (err instanceof AiRateLimitError) {
+        rateLimitedMessage = err.message;
+        return true;
+      }
+      if (err instanceof AiUnavailableError) {
+        unavailableMessage = err.message;
+        return true;
+      }
+      aiServiceError = true;
+      serviceErrorMessage =
+        err instanceof AiConfigError && err.message
+          ? err.message
+          : "AI service error, please try again";
+      const status = err instanceof AiRequestError ? err.status : undefined;
+      const detail = err instanceof AiRequestError ? err.detail : undefined;
+      console.error(
+        `[api/questions/answer] batch failed (status=${status ?? "n/a"}): ${failureReason(err)}${detail ? ` — ${detail}` : ""}`
+      );
+      return true;
+    };
+
+    for (const batch of batches) {
+      if (Date.now() >= deadline) break;
+      if (rateLimitedMessage || unavailableMessage || aiServiceError) break;
+
+      let answers: Map<string, AiResult>;
+      try {
+        answers = await requestBatch(batch);
+      } catch (err) {
+        classifyStop(err);
+        if (rateLimitedMessage || unavailableMessage) {
+          // Never attempted — the questions stay pending.
+          break;
+        }
+        // Real AI failure: mark this batch failed, then stop so one
+        // outage cannot burn the whole questionnaire.
+        for (const question of batch) {
+          await markFailed(question, failureReason(err));
+        }
+        break;
+      }
+
+      // Re-ask ONLY the items that are missing or invalid so far.
+      const missing = batch.filter((question) => !answers.has(question.id));
+      if (missing.length > 0 && Date.now() < deadline) {
+        try {
+          const retryAnswers = await requestBatch(missing);
+          retryAnswers.forEach((value, id) => answers.set(id, value));
+        } catch (err) {
+          classifyStop(err);
+          if (rateLimitedMessage || unavailableMessage) {
+            // Save what we have; the missing ones stay pending.
+            break;
+          }
+          for (const question of batch) {
+            if (answers.has(question.id)) continue;
+            await markFailed(question, failureReason(err));
+          }
+          break;
+        }
+      }
+
+      // Save every validated answer.
+      for (const question of batch) {
+        const value = answers.get(question.id);
+        if (!value) {
+          // Missing even after the re-ask: a real failure, never a
+          // fake "not found".
+          await markFailed(
+            question,
+            "The AI did not answer this question. Please try again."
+          );
+          continue;
+        }
+        results.push(await saveResult(question, value));
+      }
+    }
   }
 
   // Update questionnaire status: 'answering' while questions remain,
   // 'ready' once no pending questions are left.
   const questionnaireIds = [
     ...new Set(
-      (
-        await supabase
-          .from("questions")
-          .select("questionnaire_id")
-          .in("id", ids)
-          .eq("user_id", user.id)
-      ).data?.map((row: { questionnaire_id: string }) => row.questionnaire_id) ??
-      []
+      (loaded ?? []).map((row) => (row as QuestionRow).questionnaire_id)
     ),
-  ] as string[];
+  ];
 
   for (const qnrId of questionnaireIds) {
     const { count: pendingCount } = await supabase
@@ -342,8 +519,9 @@ export async function POST(request: Request) {
       .eq("user_id", user.id);
   }
 
-  // Friendly 429 if the user hit the hourly/daily AI limit mid-batch.
-  // Anything already saved is applied by the UI from `results`.
+  // Friendly 429 if the user hit the hourly/daily AI limit or every
+  // provider is on cooldown. Anything already saved is applied by the
+  // UI from `results`.
   if (rateLimitedMessage) {
     return NextResponse.json(
       { error: rateLimitedMessage, message: rateLimitedMessage, results },
@@ -365,13 +543,13 @@ export async function POST(request: Request) {
     );
   }
 
-  // The AI service failed for real (not rate limiting): report it as an
-  // error. `results` still carries every question that did finish.
+  // The AI service failed for real (not rate limiting): report it as
+  // an error. `results` still carries every question that did finish.
   if (aiServiceError) {
     return NextResponse.json(
       {
-        error: "AI service error, please try again",
-        message: "AI service error, please try again",
+        error: serviceErrorMessage,
+        message: serviceErrorMessage,
         results,
       },
       { status: 502 }
