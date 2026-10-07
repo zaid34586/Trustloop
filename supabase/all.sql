@@ -356,7 +356,7 @@ create trigger questions_set_updated_at
 
 -- ------------------------------------------------------------
 -- 8. ai_usage — one row per AI call, used for rate limiting
---    (60 calls/hour, 300/day). Read+written by the API routes
+--    (100 calls/hour, 500/day). Read+written by the API routes
 --    with the user's session. RLS: select + insert own rows only.
 -- ------------------------------------------------------------
 create table if not exists public.ai_usage (
