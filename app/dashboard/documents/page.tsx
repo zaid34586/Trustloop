@@ -175,6 +175,15 @@ export default function DocumentsPage() {
 
       if (insertError) {
         await supabase.storage.from("documents").remove([filePath]);
+        // Plan quota trigger (see supabase/no_free_plan.sql).
+        if (insertError.message?.includes("PLAN_LIMIT_DOCUMENTS")) {
+          setError(
+            "You have reached your plan's document limit. Upgrade your plan to upload more."
+          );
+          setUploading(false);
+          setUploadingName(null);
+          break;
+        }
         setError(`Upload failed for "${file.name}". Please try again.`);
         setUploading(false);
         setUploadingName(null);

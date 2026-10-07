@@ -204,7 +204,14 @@ export default function QuestionnairesPage() {
 
     if (insertError || !inserted) {
       await supabase.storage.from("questionnaires").remove([filePath]);
-      setError("Upload failed. Please try again.");
+      // Plan quota trigger (see supabase/no_free_plan.sql).
+      if (insertError?.message?.includes("PLAN_LIMIT_QUESTIONNAIRES")) {
+        setError(
+          "You have reached your plan's monthly questionnaire limit. Upgrade your plan to upload more."
+        );
+      } else {
+        setError("Upload failed. Please try again.");
+      }
       setUploading(false);
       setUploadingName(null);
       return;
