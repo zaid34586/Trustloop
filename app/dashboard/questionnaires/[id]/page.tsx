@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { pingWarmup } from "@/lib/warmup";
 import {
   Badge,
   EmptyState,
@@ -300,6 +301,8 @@ export default function QuestionnaireDetailPage() {
       if (!response.ok) {
         setError(data?.error ?? "Could not extract the questions.");
       } else {
+        // Activity: reboot/keep-alive the AI server (fire-and-forget).
+        pingWarmup();
         setNotice(
           data?.message ??
             (typeof data?.total === "number"
@@ -342,6 +345,8 @@ export default function QuestionnaireDetailPage() {
     // any per-question errors. They only reappear if this action fails.
     clearBanners();
     setGenerating(true);
+    // Activity: reboot/keep-alive the AI server before the run.
+    pingWarmup();
     setProgress({ done: 0, total: ids.length });
     stopRef.current = false;
 

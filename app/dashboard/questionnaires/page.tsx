@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { pingWarmup } from "@/lib/warmup";
 import {
   Badge,
   EmptyState,
@@ -216,6 +217,9 @@ export default function QuestionnairesPage() {
       setUploadingName(null);
       return;
     }
+
+    // Activity: reboot/keep-alive the AI server (fire-and-forget).
+    pingWarmup();
 
     // Go straight to the column picker for the new questionnaire.
     router.push(`/dashboard/questionnaires/${inserted.id}`);

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { pingWarmup } from "@/lib/warmup";
 import {
   Badge,
   EmptyState,
@@ -189,6 +190,9 @@ export default function DocumentsPage() {
         setUploadingName(null);
         continue;
       }
+
+      // Activity: reboot/keep-alive the AI server (fire-and-forget).
+      pingWarmup();
 
       // Process the document (extract text and build search chunks).
       try {
