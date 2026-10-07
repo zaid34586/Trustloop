@@ -1,6 +1,62 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// ------------------------------------------------------------
+// Content-Disposition helpers. questionnaire.file_name is the
+// original client-supplied upload name, so it must be sanitised
+// before going into a response header.
+// ------------------------------------------------------------
+
+/** Drop directory parts, then quotes, separators, control and
+ *  non-printable characters. `asciiOnly` also drops non-ASCII. */
+function stripUnsafe(value: string, asciiOnly: boolean): string {
+  // No directory components, whichever separator was used.
+  const base = value
+    .substring(value.lastIndexOf("/") + 1)
+    .substring(value.lastIndexOf("\\") + 1);
+  let out = "";
+  for (let i = 0; i < base.length; i++) {
+    const code = base.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) continue; // control chars / DEL
+    if (code > 0x7e && asciiOnly) continue;
+    const ch = base.charAt(i);
+    if (ch === '"' || ch === "'" || ch === "\\" || ch === "/" || ch === ";") {
+      continue;
+    }
+    out += ch;
+  }
+  return out.trim();
+}
+
+/** Cap the length while keeping the file extension. */
+function capLength(name: string): string {
+  const MAX = 100;
+  if (name.length <= MAX) return name;
+  const dot = name.lastIndexOf(".");
+  const ext = dot > 0 && name.length - dot <= 12 ? name.slice(dot) : "";
+  return name.slice(0, MAX - ext.length) + ext;
+}
+
+/** RFC 5987 percent-encoding (UTF-8, plus the chars encodeURIComponent
+ *  leaves bare but attr-char does not allow). */
+function encodeRfc5987(value: string): string {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    (ch) => "%" + ch.charCodeAt(0).toString(16).toUpperCase()
+  );
+}
+
+/**
+ * attachment header with an ASCII-safe quoted filename (fallback for
+ * old clients) and the RFC 5987 filename* form for non-ASCII names.
+ */
+function buildContentDisposition(rawName: string): string {
+  const fallback = "export.xlsx";
+  const ascii = capLength(stripUnsafe(rawName, true)) || fallback;
+  const utf8 = capLength(stripUnsafe(rawName, false)) || fallback;
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeRfc5987(utf8)}`;
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -147,7 +203,7 @@ export async function POST(
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${outputName}"`,
+        "Content-Disposition": buildContentDisposition(outputName),
         "Cache-Control": "no-store",
       },
     });
