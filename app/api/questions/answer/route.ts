@@ -236,7 +236,8 @@ export async function POST(request: Request) {
             sources: [],
             status: "not_found",
           })
-          .eq("id", id);
+          .eq("id", id)
+          .eq("user_id", user.id);
 
         if (updateError) throw new Error("Could not save the answer.");
         results.push({
@@ -265,7 +266,8 @@ export async function POST(request: Request) {
             sources,
             status: "drafted",
           })
-          .eq("id", id);
+          .eq("id", id)
+          .eq("user_id", user.id);
 
         if (updateError) throw new Error("Could not save the answer.");
         results.push({
@@ -290,7 +292,8 @@ export async function POST(request: Request) {
       const { error: updateError } = await supabase
         .from("questions")
         .update({ status: "failed" })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user.id);
       if (updateError) {
         console.error(
           `[api/questions/answer] question=${id} could not be marked failed: ${updateError.message}`
@@ -318,6 +321,7 @@ export async function POST(request: Request) {
           .from("questions")
           .select("questionnaire_id")
           .in("id", ids)
+          .eq("user_id", user.id)
       ).data?.map((row: { questionnaire_id: string }) => row.questionnaire_id) ??
       []
     ),
@@ -334,7 +338,8 @@ export async function POST(request: Request) {
     await supabase
       .from("questionnaires")
       .update({ status: pendingCount ? "answering" : "ready" })
-      .eq("id", qnrId);
+      .eq("id", qnrId)
+      .eq("user_id", user.id);
   }
 
   // Friendly 429 if the user hit the hourly/daily AI limit mid-batch.

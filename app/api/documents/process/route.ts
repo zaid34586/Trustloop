@@ -130,6 +130,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not logged in." }, { status: 401 });
   }
 
+  const ownerId = user.id;
+
   let body: { document_id?: string };
   try {
     body = await request.json();
@@ -164,7 +166,8 @@ export async function POST(request: Request) {
     await supabase
       .from("documents")
       .update({ status: "failed", error_message: message })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .eq("user_id", ownerId);
   }
 
   const tooLargeMessage = "This file is too large. Maximum size is 10 MB.";
@@ -194,13 +197,15 @@ export async function POST(request: Request) {
   await supabase
     .from("documents")
     .update({ status: "processing", error_message: null })
-    .eq("id", documentId);
+    .eq("id", documentId)
+    .eq("user_id", user.id);
 
   // Reprocessing: remove old chunks first.
   await supabase
     .from("document_chunks")
     .delete()
-    .eq("document_id", documentId);
+    .eq("document_id", documentId)
+    .eq("user_id", user.id);
 
   try {
     // Download from the private bucket (RLS restricts this to the
@@ -297,7 +302,8 @@ export async function POST(request: Request) {
     const { error: readyError } = await supabase
       .from("documents")
       .update({ status: "ready", error_message: null })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .eq("user_id", user.id);
 
     if (readyError) {
       return NextResponse.json(
