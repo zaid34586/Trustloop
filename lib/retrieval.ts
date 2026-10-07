@@ -33,9 +33,25 @@ export type UserChunk = {
 export type RankedChunk = UserChunk & { score: number };
 
 /** Corpora this size or smaller send every chunk to the AI (no ranking cut). */
-export const ALL_CHUNKS_LIMIT = 30;
+export const ALL_CHUNKS_LIMIT = 12;
 /** How many chunks to keep when the corpus is larger than ALL_CHUNKS_LIMIT. */
 export const TOP_CHUNKS = 6;
+/** Max length of an excerpt shown to users (Sources panel / stored sources). */
+export const EXCERPT_MAX_CHARS = 300;
+
+/**
+ * Cleans an excerpt for display and storage: collapses whitespace and
+ * cuts at ~300 characters with an ellipsis. The AI still receives the
+ * full chunk content — this only shapes what users see.
+ */
+export function trimExcerpt(
+  text: string,
+  maxChars: number = EXCERPT_MAX_CHARS
+): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= maxChars) return clean;
+  return `${clean.slice(0, maxChars - 1).trimEnd()}…`;
+}
 
 const STOP_WORDS = new Set([
   "a", "about", "all", "also", "am", "an", "and", "any", "are", "as", "at",

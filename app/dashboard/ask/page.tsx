@@ -27,6 +27,18 @@ export default function AskPage() {
   const [error, setError] = useState<string | null>(null);
   const [checkingDocs, setCheckingDocs] = useState(true);
   const [hasReadyDocs, setHasReadyDocs] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    if (!answer) return;
+    try {
+      await navigator.clipboard.writeText(answer);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard unavailable (permissions / insecure context) — ignore.
+    }
+  }
 
   useEffect(() => {
     async function checkReadyDocuments() {
@@ -183,6 +195,27 @@ export default function AskPage() {
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   Answer
                 </h2>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-tint hover:text-navy"
+                >
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.8}
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15.75 17.25v2.25a2.25 2.25 0 01-2.25 2.25h-6a2.25 2.25 0 01-2.25-2.25V7.5m9.75-3H9a2.25 2.25 0 00-2.25 2.25v9.75A2.25 2.25 0 009 18.75h7.5A2.25 2.25 0 0018.75 16.5V6.75A2.25 2.25 0 0016.5 4.5z"
+                    />
+                  </svg>
+                  {copied ? "Copied" : "Copy"}
+                </button>
               </div>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-navy">
                 {answer}
