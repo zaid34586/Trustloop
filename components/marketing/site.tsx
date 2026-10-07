@@ -1594,27 +1594,43 @@ const legalContent: Record<
         "Customer is responsible for its account, the documents it provides, and reviewing and approving questionnaire answers before sharing them. Customer must have the rights and permissions needed to upload and process its content.",
       ],
       [
-        "4. Customer content and AI",
+        "4. Acceptable use",
+        `Customer may not use ${site.brandName} to upload or process content it does not have the rights to use, to attempt to gain unauthorized access to the service or other accounts, to interfere with the normal operation of the service, or for any unlawful purpose. ${site.companyName} may suspend access if these terms are breached.`,
+      ],
+      [
+        "5. Customer content and AI",
         `${site.brandName} uses documents provided by Customer to draft questionnaire responses. Excerpts of documents may be processed by third-party AI model providers. AI-generated drafts may be incomplete or inaccurate and must be reviewed by a person. ${site.companyName} retains all right, title, and interest in ${site.brandName}, including the site, the product, its content, policies, and intellectual property. Customer retains its rights in the documents it provides.`,
       ],
       [
-        "5. Fees and cancellation",
+        "6. Fees and cancellation",
         "Subscription prices, billing frequency, and cancellation terms are shown on the pricing page. Prices are in USD. Customer may cancel anytime.",
       ],
       [
-        "6. Availability and changes",
+        "7. Availability and changes",
         "The Company may update or modify the service. No specific uptime or uninterrupted availability is promised by this draft template.",
       ],
       [
-        "7. Assignment",
+        "8. Termination",
+        `Customer may stop using the service at any time. The Company may suspend or terminate Customer's access if Customer breaches these terms. On termination, Customer's right to use the service ends, and the Company may delete Customer's account and content as described in the privacy policy.`,
+      ],
+      [
+        "9. Disclaimers",
+        `TODO-LAWYER: disclaimers. To the maximum extent permitted by law, the service is provided "as is" and "as available", without warranties of any kind, express or implied, including merchantability, fitness for a particular purpose, and non-infringement. AI-generated drafts may be incomplete or inaccurate and must be reviewed by a person before use.`,
+      ],
+      [
+        "10. Limitation of liability",
+        `TODO-LAWYER: limitation of liability. To the maximum extent permitted by law, ${site.companyName} will not be liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits, data, or goodwill, arising out of or related to the service. ${site.companyName}'s total liability will not exceed the amounts paid by Customer for the service in the 12 months before the claim (or USD 100 if no amounts have been paid).`,
+      ],
+      [
+        "11. Assignment",
         "The Company may assign or transfer these terms, in whole or in part, in connection with a merger, acquisition, reorganization, or sale of assets. Any successor or transferee will be bound by these terms, and Customer's agreement continues with any successor to the Company's business. Customer may not assign these terms without the Company's written consent.",
       ],
       [
-        "8. Governing law",
-        "[GOVERNING LAW AND COURTS]",
+        "12. Governing law",
+        "TODO-LAWYER: governing law and courts. This section must state the governing law and the courts (or other dispute resolution venue) that will apply to these terms. No jurisdiction has been chosen in this draft — a legal professional must complete it before publication.",
       ],
       [
-        "9. Contact",
+        "13. Contact",
         `Questions about these terms may be directed to ${site.supportEmail}.`,
       ],
     ],
@@ -1631,31 +1647,39 @@ const legalContent: Record<
         `Information is used to provide and support ${site.brandName}, draft questionnaire responses, process payments, and communicate about the service.`,
       ],
       [
-        "3. Service providers",
+        "3. Legal basis (GDPR)",
+        `Where the GDPR or similar law applies, ${site.companyName} processes personal information on these bases: performance of a contract (providing the service you sign up for), legitimate interests (keeping the service secure and reliable, and improving it), and consent where required (for example, optional communications).`,
+      ],
+      [
+        "4. Service providers",
         "The service relies on third-party providers: Supabase (database, file storage, and account login), Vercel (hosting), OpenRouter and its routed model providers (AI drafting), and Paddle (payments, acting as merchant of record). These providers process information only as needed to provide their services.",
       ],
       [
-        "4. Third-party AI processing",
+        "5. Third-party AI processing",
         `Excerpts of your documents are sent to third-party AI model providers to generate draft answers. ${site.companyName} does not train its own models on your documents. A person should review each answer before sharing it.`,
       ],
       [
-        "5. Storage and security",
+        "6. Storage and security",
         "Documents are stored privately per account, customer data is kept separate between accounts, and HTTPS is used in transit. This summary is not a security certification.",
       ],
       [
-        "6. Retention and deletion",
-        `Information is retained for as long as your account is active or as needed to provide the service, comply with legal obligations, and resolve disputes. You can request deletion of your documents and account data at any time by contacting ${site.supportEmail}.`,
+        "7. Retention and deletion",
+        `Information is retained for as long as your account is active or as needed to provide the service, comply with legal obligations, and resolve disputes. When you ask us to delete your account, your documents and questionnaires are deleted, and copies are removed from active systems within a reasonable period. You can request deletion of your documents and account data at any time by contacting ${site.supportEmail} with the subject line "Data deletion request".`,
       ],
       [
-        "7. Your rights",
-        `Depending on where you live, you may have the right to access, correct, export, or delete your personal information. Contact ${site.supportEmail} with a verified request and ${site.companyName} will respond.`,
+        "8. Your rights",
+        `Depending on where you live, you may have the right to access, correct, export, or delete your personal information, to restrict or object to its processing, and to lodge a complaint with a supervisory authority. To exercise these rights, contact ${site.supportEmail} with a verified request and ${site.companyName} will respond.`,
       ],
       [
-        "8. Children",
+        "9. International transfers",
+        `Your information may be processed in countries other than your own, including the United States, where our providers (such as hosting and AI model providers) operate. Where required, transfers rely on appropriate safeguards such as standard contractual clauses.`,
+      ],
+      [
+        "10. Children",
         `${site.brandName} is a business service and is not directed to children. It is not for use by anyone under 18.`,
       ],
       [
-        "9. Contact",
+        "11. Contact",
         `For privacy questions, contact ${site.supportEmail}.`,
       ],
     ],
@@ -1665,7 +1689,7 @@ const legalContent: Record<
     sections: [
       [
         "1. Subscription fees",
-        `Subscription fees and billing periods are displayed on the ${site.brandName} pricing page. Prices are shown in USD and are billed through Paddle, the merchant of record.`,
+        `Subscription fees and billing periods are displayed on the ${site.brandName} pricing page. Prices are shown in USD. Payments are not enabled yet; when they are, billing will be handled by our payment provider as merchant of record.`,
       ],
       [
         "2. Cancellation",
@@ -1673,7 +1697,7 @@ const legalContent: Record<
       ],
       [
         "3. Refund requests",
-        `Contact ${site.supportEmail} with your account and billing details to discuss a refund request. Refunds are processed through Paddle; any applicable refund will be assessed under the final published policy and applicable law.`,
+        `TODO-LAWYER: refund window. Refund requests must be submitted within ${site.refundWindowDays} days of the initial payment. Contact ${site.supportEmail} with your account and billing details to make a request. Any applicable refund will be assessed under the final published policy and applicable law.`,
       ],
       [
         "4. Contact",
