@@ -1442,49 +1442,82 @@ export function AboutPage() {
           title="A clearer way to answer security reviews."
           description="Trustloop is built to help software teams spend less time reworking questionnaire answers and more time focused on their customers."
         />
-        <article className="editorial-content">
-          <h2>Why Trustloop</h2>
-          <p>
-            Security questionnaires are an important part of earning customer
-            trust, but answering them repeatedly can take time away from the
-            work of building software. Trustloop brings your source documents
-            and questionnaire review into one focused workflow.
-          </p>
-          <p>
-            For many teams, the information already exists. It lives in
-            policies, internal documents, and responses from previous reviews.
-            The difficult part is finding the right detail, adapting it to a new
-            question, and making sure it still reflects how the company works
-            today.
-          </p>
-          <h2>A workflow built around judgment</h2>
-          <p>
-            Trustloop starts with the material your team provides. It drafts
-            answers with supporting sources, makes gaps visible, and leaves the
-            final decision with the people who know the business. It is designed
-            to support a careful review, not replace one.
-          </p>
-          <h2>Our mission</h2>
-          <p>
-            Make security reviews more manageable for the teams doing the
-            work—without taking people out of the decision-making process. When
-            a response is ready to share, your team should know what it says and
-            why.
-          </p>
-          <p className="about-rivox">
-            Trustloop is a Rivox product.{" "}
-            <a href="https://rivoxcloud.com" target="_blank" rel="noopener noreferrer">
-              Visit Rivox <ArrowUpRight />
-            </a>
-          </p>
-          <p>
-            Trustloop is provided by {site.companyName}, which owns the service
-            and its content, policies, and intellectual property.{" "}
-            {site.companyName} is completing its {site.companyStatus}; these
-            details will be updated here when it is complete.
-          </p>
-          <p className="last-updated">Last updated: {site.lastUpdated}</p>
-        </article>
+        <div className="inner-split">
+          <article className="editorial-content">
+            <h2>Why Trustloop</h2>
+            <p>
+              Security questionnaires are an important part of earning customer
+              trust, but answering them repeatedly can take time away from the
+              work of building software. Trustloop brings your source documents
+              and questionnaire review into one focused workflow.
+            </p>
+            <p>
+              For many teams, the information already exists. It lives in
+              policies, internal documents, and responses from previous reviews.
+              The difficult part is finding the right detail, adapting it to a new
+              question, and making sure it still reflects how the company works
+              today.
+            </p>
+            <h2>A workflow built around judgment</h2>
+            <p>
+              Trustloop starts with the material your team provides. It drafts
+              answers with supporting sources, makes gaps visible, and leaves the
+              final decision with the people who know the business. It is designed
+              to support a careful review, not replace one.
+            </p>
+            <h2>Our mission</h2>
+            <p>
+              Make security reviews more manageable for the teams doing the
+              work—without taking people out of the decision-making process. When
+              a response is ready to share, your team should know what it says and
+              why.
+            </p>
+            <p className="about-rivox">
+              Trustloop is a Rivox product.{" "}
+              <a href="https://rivoxcloud.com" target="_blank" rel="noopener noreferrer">
+                Visit Rivox <ArrowUpRight />
+              </a>
+            </p>
+            <p>
+              Trustloop is provided by {site.companyName}, which owns the service
+              and its content, policies, and intellectual property.{" "}
+              {site.companyName} is completing its {site.companyStatus}; these
+              details will be updated here when it is complete.
+            </p>
+            <p className="last-updated">Last updated: {site.lastUpdated}</p>
+          </article>
+          <aside className="side-aside">
+            <div className="side-card">
+              <h3>Provided by</h3>
+              <p>
+                {site.brandName} is a {site.companyName} product, located in{" "}
+                {site.cityCountry}.
+              </p>
+              <p>
+                <a href={site.rivoxUrl} target="_blank" rel="noopener noreferrer">
+                  rivoxcloud.com
+                </a>
+              </p>
+            </div>
+            <div className="side-card">
+              <h3>Contact</h3>
+              <p>
+                <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>
+              </p>
+              <ul className="side-links">
+                <li>
+                  <Link href="/security">Security</Link>
+                </li>
+                <li>
+                  <Link href="/terms">Terms of Service</Link>
+                </li>
+                <li>
+                  <Link href="/privacy">Privacy Policy</Link>
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   );
@@ -1499,36 +1532,61 @@ export function ContactPage() {
           title="Talk to the Trustloop team."
           description="For questions about early access, product details, or support, reach out by email."
         />
-        <div className="contact-layout">
-          <div className="contact-details">
-            <div className="contact-icon">
-              <FileText />
+        <div className="inner-split">
+          <div className="contact-layout">
+            <div className="contact-details">
+              <div className="contact-icon">
+                <FileText />
+              </div>
+              <h2>Email the team</h2>
+              <a href={`mailto:${site.supportEmail}`}>
+                {site.supportEmail} <ArrowUpRight />
+              </a>
+              <p>
+                We reply to questions about early access, product details, and
+                support.
+              </p>
             </div>
-            <h2>Email the team</h2>
-            <a href={`mailto:${site.supportEmail}`}>
-              {site.supportEmail} <ArrowUpRight />
-            </a>
-            <p>
-              We reply to questions about early access, product details, and
-              support.
-            </p>
+            <div className="contact-form">
+              <p>
+                Prefer your own email app? Write to us directly and we will get
+                back to you.
+              </p>
+              <a
+                className="button-dark form-send"
+                href={`mailto:${site.supportEmail}?subject=Trustloop%20question`}
+              >
+                Write an email <ArrowRight />
+              </a>
+              <p>
+                This site has no contact form — nothing is sent or stored from
+                this page.
+              </p>
+            </div>
           </div>
-          <div className="contact-form">
-            <p>
-              Prefer your own email app? Write to us directly and we will get
-              back to you.
-            </p>
-            <a
-              className="button-dark form-send"
-              href={`mailto:${site.supportEmail}?subject=Trustloop%20question`}
-            >
-              Write an email <ArrowRight />
-            </a>
-            <p>
-              This site has no contact form — nothing is sent or stored from
-              this page.
-            </p>
-          </div>
+          <aside className="side-aside">
+            <div className="side-card">
+              <h3>Support</h3>
+              <p>
+                Questions about early access, product details, or support reach
+                the {site.companyName} team at:
+              </p>
+              <p>
+                <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>
+              </p>
+              <ul className="side-links">
+                <li>
+                  <Link href="/about">About Trustloop</Link>
+                </li>
+                <li>
+                  <Link href="/security">Security</Link>
+                </li>
+                <li>
+                  <Link href="/pricing">Pricing</Link>
+                </li>
+              </ul>
+            </div>
+          </aside>
         </div>
         <p className="last-updated">Last updated: {site.lastUpdated}</p>
       </div>
@@ -1553,25 +1611,44 @@ export function SecurityPage() {
           title="A clear view of how Trustloop handles data."
           description="An honest outline of the security practices described for the product."
         />
-        <article className="editorial-content security-content">
-          <h2>How your information is handled</h2>
-          <ul className="security-list">
-            {points.map((point) => (
-              <li key={point}>
-                <ShieldCheck />
-                {point}
-              </li>
-            ))}
-          </ul>
-          <aside className="honesty-note">
-            <h2>What we do not claim yet</h2>
-            <p>
-              Trustloop does not currently hold a SOC 2 or ISO 27001
-              certification.
-            </p>
+        <div className="inner-split">
+          <article className="editorial-content security-content">
+            <h2>How your information is handled</h2>
+            <ul className="security-list">
+              {points.map((point) => (
+                <li key={point}>
+                  <ShieldCheck />
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <p className="last-updated">Last updated: {site.lastUpdated}</p>
+          </article>
+          <aside className="side-aside">
+            <div className="honesty-note">
+              <h2>What we do not claim yet</h2>
+              <p>
+                Trustloop does not currently hold a SOC 2 or ISO 27001
+                certification.
+              </p>
+            </div>
+            <div className="side-card">
+              <h3>Questions</h3>
+              <p>
+                Security questions about {site.brandName} can be sent to{" "}
+                <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.
+              </p>
+              <ul className="side-links">
+                <li>
+                  <Link href="/privacy">Privacy Policy</Link>
+                </li>
+                <li>
+                  <Link href="/terms">Terms of Service</Link>
+                </li>
+              </ul>
+            </div>
           </aside>
-          <p className="last-updated">Last updated: {site.lastUpdated}</p>
-        </article>
+        </div>
       </div>
     </main>
   );
@@ -1716,6 +1793,19 @@ const legalTitles: Record<string, string> = {
   refund: "Refund Policy",
 };
 
+function headingId(heading: string) {
+  return heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const legalRoutes: Record<string, string> = {
+  terms: "/terms",
+  privacy: "/privacy",
+  refund: "/refund-policy",
+};
+
 export function LegalPage({ kind }: { kind: "terms" | "privacy" | "refund" }) {
   const content = legalContent[kind];
   return (
@@ -1730,15 +1820,46 @@ export function LegalPage({ kind }: { kind: "terms" | "privacy" | "refund" }) {
           title={legalTitles[kind]}
           description={content.intro}
         />
-        <article className="editorial-content legal-content">
-          {content.sections.map(([heading, body]) => (
-            <section key={heading}>
-              <h2>{heading}</h2>
-              <p>{body}</p>
-            </section>
-          ))}
-          <p className="last-updated">Last updated: {site.lastUpdated}</p>
-        </article>
+        <div className="inner-split">
+          <article className="editorial-content legal-content">
+            {content.sections.map(([heading, body]) => (
+              <section key={heading} id={headingId(heading)}>
+                <h2>{heading}</h2>
+                <p>{body}</p>
+              </section>
+            ))}
+            <p className="last-updated">Last updated: {site.lastUpdated}</p>
+          </article>
+          <aside className="side-aside">
+            <div className="side-card">
+              <h3>On this page</h3>
+              <ul className="side-toc">
+                {content.sections.map(([heading]) => (
+                  <li key={heading}>
+                    <a href={`#${headingId(heading)}`}>{heading}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="side-card">
+              <h3>Related</h3>
+              <ul className="side-links">
+                {Object.keys(legalTitles)
+                  .filter((other) => other !== kind)
+                  .map((other) => (
+                    <li key={other}>
+                      <Link href={legalRoutes[other]}>
+                        {legalTitles[other]}
+                      </Link>
+                    </li>
+                  ))}
+                <li>
+                  <Link href="/security">Security</Link>
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   );
