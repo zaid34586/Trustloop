@@ -32,6 +32,12 @@ export default function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileState, setProfileState] = useState<SaveState>(null);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  // Usage vs plan limits; null until the counts are loaded.
+  const [usage, setUsage] = useState<{
+    documents: number;
+    questionnaires: number;
+    ai: number;
+  } | null>(null);
 
   // Password
   const [password, setPassword] = useState("");
@@ -96,6 +102,37 @@ export default function SettingsPage() {
           }))
         );
       }
+      // Usage vs limits — mirrors how the limits are enforced:
+      // documents all-time, questionnaires this calendar month
+      // (enforce_questionnaire_quota), AI in the rolling 24h window
+      // (lib/ai.ts checkRateLimit).
+      const now = Date.now();
+      const monthStart = new Date(
+        Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)
+      ).toISOString();
+      const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+      const [docsRes, qnrRes, aiRes] = await Promise.all([
+        supabase
+          .from("documents")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id),
+        supabase
+          .from("questionnaires")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("created_at", monthStart),
+        supabase
+          .from("ai_usage")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("created_at", dayAgo),
+      ]);
+      setUsage({
+        documents: docsRes.count ?? 0,
+        questionnaires: qnrRes.count ?? 0,
+        ai: aiRes.count ?? 0,
+      });
+
       setLoadingProfile(false);
     }
 
@@ -349,24 +386,30 @@ export default function SettingsPage() {
           const current =
             activePlans.find((plan) => plan.key === planKey) ?? null;
           const limits = parseLimits(current?.limits ?? null);
-          const rows: { label: string; value: string }[] = [
+          // "12 / 25" once usage loads; just the limit before that.
+          const fmt = (limit: number | null, used?: number | null) =>
+            limit === null
+              ? "Unlimited"
+              : used === null || used === undefined
+                ? String(limit)
+                : `${used} / ${limit}`;
+          const atLimit = (limit: number | null, used?: number | null) =>
+            limit !== null && used != null && used >= limit;
+          const rows: { label: string; value: string; alert?: boolean }[] = [
             {
               label: "Documents",
-              value: limits.documents === null ? "Unlimited" : String(limits.documents),
+              value: fmt(limits.documents, usage?.documents),
+              alert: atLimit(limits.documents, usage?.documents),
             },
             {
               label: "Questionnaires / month",
-              value:
-                limits.questionnaires_per_month === null
-                  ? "Unlimited"
-                  : String(limits.questionnaires_per_month),
+              value: fmt(limits.questionnaires_per_month, usage?.questionnaires),
+              alert: atLimit(limits.questionnaires_per_month, usage?.questionnaires),
             },
             {
               label: "AI requests / day",
-              value:
-                limits.ai_requests_per_day === null
-                  ? "Unlimited"
-                  : String(limits.ai_requests_per_day),
+              value: fmt(limits.ai_requests_per_day, usage?.ai),
+              alert: atLimit(limits.ai_requests_per_day, usage?.ai),
             },
             {
               label: "Seats",
@@ -384,11 +427,6 @@ export default function SettingsPage() {
                     ${current.price_monthly}/mo
                   </span>
                 )}
-                {current && current.price_monthly === 0 && (
-                  <span className="text-sm text-muted-foreground">
-                    Free
-                  </span>
-                )}
               </div>
               <dl className="mt-4 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
                 {rows.map((row) => (
@@ -397,7 +435,13 @@ export default function SettingsPage() {
                     className="flex items-center justify-between gap-4 border-b border-border/60 pb-1"
                   >
                     <dt className="text-muted-foreground">{row.label}</dt>
-                    <dd className="font-medium text-navy">{row.value}</dd>
+                    <dd
+                      className={`font-medium ${
+                        row.alert ? "text-red-600" : "text-navy"
+                      }`}
+                    >
+                      {row.value}
+                    </dd>
                   </div>
                 ))}
               </dl>
