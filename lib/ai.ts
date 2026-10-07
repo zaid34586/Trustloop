@@ -55,14 +55,19 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 export const AI_HOURLY_LIMIT = 60;
 export const AI_DAILY_LIMIT = 300;
 
-// 1 initial attempt + up to 2 automatic retries with a short backoff.
-// Retries cover network failures, provider 429/5xx and unparseable
-// output (bad JSON) before the error reaches the caller.
+// 1 initial attempt + up to 2 automatic retries with exponential
+// backoff. Retries cover network failures, provider 429/5xx,
+// timeouts and unparseable output (bad JSON) before the error
+// reaches the caller.
 const MAX_ATTEMPTS = 3;
-const RETRY_BACKOFF_MS = [800, 1500];
-// Per-attempt timeout so a hung request becomes a retryable failure
-// and never exceeds the route's maxDuration (60s).
-const REQUEST_TIMEOUT_MS = 30_000;
+const RETRY_BACKOFF_MS = [800, 1600];
+// Per-attempt timeout so a hung request becomes a retryable failure.
+// Budget: 3 attempts x 18s + 0.8s + 1.6s backoff = 56.4s, which fits
+// inside the routes' maxDuration (60s) — a 30s timeout used to push
+// worst-case calls past the limit and get the function killed.
+const REQUEST_TIMEOUT_MS = 18_000;
+// Low default temperature: answers must stay factual and non-creative.
+const DEFAULT_TEMPERATURE = 0.2;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -293,7 +298,8 @@ async function callAnthropic(
   model: string,
   system: string,
   prompt: string,
-  maxTokens: number
+  maxTokens: number,
+  temperature: number
 ): Promise<string> {
   const response = await fetchWithTimeout(ANTHROPIC_URL, {
     method: "POST",
@@ -305,6 +311,7 @@ async function callAnthropic(
     body: JSON.stringify({
       model,
       max_tokens: maxTokens,
+      temperature,
       system,
       messages: [{ role: "user", content: prompt }],
     }),
@@ -331,7 +338,8 @@ async function callOpenRouter(
   attempt: number,
   system: string,
   prompt: string,
-  maxTokens: number
+  maxTokens: number,
+  temperature: number
 ): Promise<string> {
   const response = await fetchWithTimeout(OPENROUTER_URL, {
     method: "POST",
@@ -345,6 +353,7 @@ async function callOpenRouter(
       // at the next model so app retries and OpenRouter agree.
       models: models.slice(attempt),
       max_tokens: maxTokens,
+      temperature,
       messages: [
         { role: "system", content: system },
         { role: "user", content: prompt },
@@ -379,6 +388,8 @@ export type CompleteAiOptions = {
   system: string;
   prompt: string;
   maxTokens: number;
+  /** Sampling temperature — defaults to a low value (factual answers). */
+  temperature?: number;
 };
 
 type ExecuteResult = { text: string; parsed: unknown };
@@ -410,6 +421,7 @@ async function execute(
     // Each retry moves to the next model when fallbacks exist; with a
     // single model configured it retries the same model after backoff.
     const modelIndex = Math.min(attempt, models.length - 1);
+    const temperature = options.temperature ?? DEFAULT_TEMPERATURE;
 
     let text: string;
     try {
@@ -421,14 +433,16 @@ async function execute(
               modelIndex,
               options.system,
               options.prompt,
-              options.maxTokens
+              options.maxTokens,
+              temperature
             )
           : await callAnthropic(
               config,
               models[modelIndex],
               options.system,
               options.prompt,
-              options.maxTokens
+              options.maxTokens,
+              temperature
             );
     } catch (err) {
       // Network / 429 / 5xx / empty response — retry up to 2 more

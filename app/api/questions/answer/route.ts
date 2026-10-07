@@ -11,6 +11,7 @@ import {
 import {
   fetchUserChunks,
   selectChunks,
+  trimExcerpt,
   type UserChunk,
 } from "@/lib/retrieval";
 
@@ -53,6 +54,18 @@ function parseAiJson(raw: string): AiResult {
       )
     : [];
   return { found: parsed.found, answer: parsed.answer, confidence, sources };
+}
+
+/** Short, user-safe reason for a per-question failure (logged server-side). */
+function failureReason(err: unknown): string {
+  if (err instanceof AiRequestError) return err.message;
+  if (err instanceof Error && /JSON/i.test(err.message)) {
+    return "The AI returned an unreadable response.";
+  }
+  if (err instanceof Error && err.message === "Could not save the answer.") {
+    return err.message;
+  }
+  return "The AI service could not be reached.";
 }
 
 export async function POST(request: Request) {
@@ -121,6 +134,7 @@ export async function POST(request: Request) {
     answer_text: string | null;
     confidence: string | null;
     sources: { file_name: string; excerpt: string }[];
+    error?: string;
   }[] = [];
 
   // Set when the per-call rate limit kicks in mid-batch.
@@ -129,7 +143,19 @@ export async function POST(request: Request) {
   // other than rate limiting) — reported as a real error, never not_found.
   let aiServiceError = false;
 
+  // Stop starting new AI calls once the route's time budget is spent:
+  // remaining questions stay pending instead of getting the whole
+  // function killed by maxDuration (60s).
+  const deadline = Date.now() + 50_000;
+
   for (const id of ids) {
+    if (Date.now() > deadline) {
+      console.warn(
+        `[api/questions/answer] time budget exceeded, skipping ${ids.length - results.length} question(s)`
+      );
+      break;
+    }
+
     // Ownership: RLS also scopes this, but we need the row anyway.
     const { data: question, error: qError } = await supabase
       .from("questions")
@@ -139,18 +165,22 @@ export async function POST(request: Request) {
       .single();
 
     if (qError || !question) {
+      console.error(
+        `[api/questions/answer] question=${id} failed: could not load it (${qError?.message ?? "not found"})`
+      );
       results.push({
         id,
         status: "failed",
         answer_text: null,
         confidence: null,
         sources: [],
+        error: "Could not load this question.",
       });
       continue;
     }
 
     try {
-      // App-side ranking: <=30 chunks -> all of them; otherwise the
+      // App-side ranking: <=12 chunks -> all of them; otherwise the
       // top 6 by keyword overlap. Non-empty whenever any chunk exists,
       // so the AI is always called.
       const topChunks = selectChunks(allChunks, question.question_text);
@@ -171,7 +201,8 @@ export async function POST(request: Request) {
           route: "/api/questions/answer",
           system: SYSTEM_PROMPT,
           prompt: `Document excerpts:\n\n${excerpts}\n\n---\n\nQuestionnaire question: ${question.question_text}`,
-          maxTokens: 512,
+          maxTokens: 300,
+          temperature: 0.2,
           parse: parseAiJson,
         });
       } catch (err) {
@@ -180,19 +211,8 @@ export async function POST(request: Request) {
           rateLimitedMessage = err.message;
           break;
         }
-        // Real AI failure (network/provider/config): log the status +
-        // provider message (no secrets, no document text), mark this
-        // question failed via the outer catch, and stop the batch.
-        const status = err instanceof AiRequestError ? err.status : undefined;
-        const detail =
-          err instanceof AiRequestError
-            ? err.detail || err.message
-            : err instanceof Error
-              ? err.message
-              : String(err);
-        console.error(
-          `[api/questions/answer] AI call failed (status=${status ?? "n/a"}): ${detail}`
-        );
+        // Real AI failure (network/provider/config/parse): the outer
+        // catch logs it with the reason and marks this question failed.
         aiServiceError = true;
         throw err;
       }
@@ -224,7 +244,7 @@ export async function POST(request: Request) {
         );
         const sources = chosenIndexes.map((n) => ({
           file_name: topChunks[n - 1].file_name,
-          excerpt: topChunks[n - 1].content,
+          excerpt: trimExcerpt(topChunks[n - 1].content),
         }));
 
         const { error: updateError } = await supabase
@@ -246,20 +266,33 @@ export async function POST(request: Request) {
           sources,
         });
       }
-    } catch {
+    } catch (err) {
       // One failure must not stop the other questions in the batch —
       // unless the AI service itself is down (aiServiceError), in which
-      // case we stop after marking this question failed.
-      await supabase
+      // case we stop after marking this question failed. Every failure
+      // is logged with its reason so production runs can be diagnosed.
+      const reason = failureReason(err);
+      const status = err instanceof AiRequestError ? err.status : undefined;
+      const detail = err instanceof AiRequestError ? err.detail : undefined;
+      console.error(
+        `[api/questions/answer] question=${id} failed (status=${status ?? "n/a"}): ${reason}${detail ? ` — ${detail}` : ""}`
+      );
+      const { error: updateError } = await supabase
         .from("questions")
         .update({ status: "failed" })
         .eq("id", id);
+      if (updateError) {
+        console.error(
+          `[api/questions/answer] question=${id} could not be marked failed: ${updateError.message}`
+        );
+      }
       results.push({
         id,
         status: "failed",
         answer_text: null,
         confidence: null,
         sources: [],
+        error: reason,
       });
     }
 
@@ -295,21 +328,22 @@ export async function POST(request: Request) {
   }
 
   // Friendly 429 if the user hit the hourly/daily AI limit mid-batch.
-  // Anything already saved is reloaded by the UI after this response.
+  // Anything already saved is applied by the UI from `results`.
   if (rateLimitedMessage) {
     return NextResponse.json(
-      { error: rateLimitedMessage, message: rateLimitedMessage },
+      { error: rateLimitedMessage, message: rateLimitedMessage, results },
       { status: 429 }
     );
   }
 
   // The AI service failed for real (not rate limiting): report it as an
-  // error. The UI reloads, so already-saved results appear anyway.
+  // error. `results` still carries every question that did finish.
   if (aiServiceError) {
     return NextResponse.json(
       {
         error: "AI service error, please try again",
         message: "AI service error, please try again",
+        results,
       },
       { status: 502 }
     );

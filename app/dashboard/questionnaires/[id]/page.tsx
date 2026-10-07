@@ -55,6 +55,7 @@ type AnswerResult = {
   answer_text: string | null;
   confidence: string | null;
   sources: { file_name: string; excerpt: string }[];
+  error?: string | null;
 };
 
 const questionnaireStatusTones: Record<string, string> = {
@@ -147,11 +148,16 @@ export default function QuestionnaireDetailPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [showApproveAll, setShowApproveAll] = useState(false);
   const [approvingAll, setApprovingAll] = useState(false);
-  // Error for ONE question â€” shown inside that question's card only.
+  // Error for ONE question — shown inside that question's card only.
   const [itemError, setItemError] = useState<{
     id: string;
     message: string;
   } | null>(null);
+  // Short failure reason per question from answer generation, shown
+  // inside that question's card.
+  const [questionErrors, setQuestionErrors] = useState<
+    Record<string, string>
+  >({});
 
   // Export state
   const [includeDrafts, setIncludeDrafts] = useState(false);
@@ -163,6 +169,7 @@ export default function QuestionnaireDetailPage() {
   function clearBanners() {
     setError(null);
     setNotice(null);
+    setQuestionErrors({});
   }
 
   const loadPreview = useCallback(
@@ -296,7 +303,7 @@ export default function QuestionnaireDetailPage() {
         setNotice(
           data?.message ??
             (typeof data?.total === "number"
-              ? `Extracted ${data.total} questions. They are listed below â€” review them, then generate answers.`
+              ? `Extracted ${data.total} questions. They are listed below — review them, then generate answers.`
               : "Questions extracted.")
         );
         await loadAll();
@@ -312,15 +319,19 @@ export default function QuestionnaireDetailPage() {
     setQuestions((prev) =>
       prev.map((q) => {
         const r = results.find((x) => x.id === q.id);
-        return r
-          ? {
-              ...q,
-              status: r.status ?? q.status,
-              answer_text: r.answer_text ?? null,
-              confidence: r.confidence ?? null,
-              sources: Array.isArray(r.sources) ? r.sources : [],
-            }
-          : q;
+        if (!r) return q;
+        // A failed result only flips the status: the previous answer
+        // (e.g. a "not found" answer) survives until a run succeeds.
+        if (r.status === "failed") {
+          return { ...q, status: r.status };
+        }
+        return {
+          ...q,
+          status: r.status ?? q.status,
+          answer_text: r.answer_text ?? null,
+          confidence: r.confidence ?? null,
+          sources: Array.isArray(r.sources) ? r.sources : [],
+        };
       })
     );
   }
@@ -328,62 +339,116 @@ export default function QuestionnaireDetailPage() {
   async function runGeneration(ids: string[], itemId?: string) {
     if (ids.length === 0) return;
     // A new action clears every banner: global info, global error and
-    // any per-item error. They only reappear if this action fails.
+    // any per-question errors. They only reappear if this action fails.
     clearBanners();
-    setItemError(null);
     setGenerating(true);
     setProgress({ done: 0, total: ids.length });
     stopRef.current = false;
 
-    // Errors from a single-item action (Regenerate / Retry) stay on
-    // that item; bulk actions report through the global banner.
+    // Errors from a single-item action (Regenerate / Retry of one item)
+    // stay on that item; bulk actions report through the global banner.
+    let bannerShown = false;
     const reportError = (message: string) => {
-      if (itemId) setItemError({ id: itemId, message });
-      else setError(message);
+      if (itemId) {
+        setQuestionErrors((prev) =>
+          prev[itemId] ? prev : { ...prev, [itemId]: message }
+        );
+      } else {
+        setError(message);
+        bannerShown = true;
+      }
     };
 
-    // One controller per run so Stop aborts the in-flight request too.
+    // One controller per run so Stop aborts the in-flight requests too.
     const controller = new AbortController();
     abortRef.current = controller;
 
     let done = 0;
-    for (let i = 0; i < ids.length; i += 3) {
-      if (stopRef.current) break;
-      const batch = ids.slice(i, i + 3);
-      try {
-        const response = await fetch("/api/questions/answer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question_ids: batch }),
-          signal: controller.signal,
-        });
-        const data = await response.json().catch(() => null);
-        if (!response.ok) {
-          reportError(data?.error ?? "Answer generation failed. Please try again.");
-          break;
-        }
-        applyResults(data.results ?? []);
-        if (data?.error) {
-          reportError(data.error);
-          break;
-        }
-      } catch (err) {
-        // Stopped by the user â€” not an error.
-        if (
-          stopRef.current ||
-          (err instanceof DOMException && err.name === "AbortError")
-        ) {
-          break;
-        }
-        reportError("Could not reach the server. Please try again.");
-        break;
-      }
-      done += batch.length;
+    let next = 0;
+    let stopDispatching = false;
+    const failedReasons: string[] = [];
+
+    const advance = (result: AnswerResult) => {
+      applyResults([result]);
+      done += 1;
       setProgress({ done, total: ids.length });
+      if (result.status === "failed") {
+        const reason = result.error ?? "Answer generation failed.";
+        setQuestionErrors((prev) => ({ ...prev, [result.id]: reason }));
+        failedReasons.push(reason);
+      }
+    };
+
+    // Up to 3 questions generate concurrently; progress updates after
+    // EACH question instead of after a whole batch of three.
+    async function worker() {
+      while (!stopRef.current && !stopDispatching) {
+        const i = next++;
+        if (i >= ids.length) return;
+        const id = ids[i];
+        try {
+          const response = await fetch("/api/questions/answer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question_ids: [id] }),
+            signal: controller.signal,
+          });
+          const data = await response.json().catch(() => null);
+          const results: AnswerResult[] = Array.isArray(data?.results)
+            ? data.results
+            : [];
+          results.forEach(advance);
+
+          if (!response.ok) {
+            const message: string =
+              data?.error ??
+              data?.message ??
+              "Answer generation failed. Please try again.";
+            // 429 means the question was never attempted - it stays
+            // pending. Any other error stops the run so one outage
+            // cannot burn the whole questionnaire; questions that were
+            // not attempted stay pending for a later retry.
+            if (results.length === 0 && response.status >= 500) {
+              advance({
+                id,
+                status: "failed",
+                answer_text: null,
+                confidence: null,
+                sources: [],
+                error: message,
+              });
+            }
+            stopDispatching = true;
+            reportError(message);
+          }
+        } catch (err) {
+          // Stopped by the user - not an error.
+          if (
+            stopRef.current ||
+            (err instanceof DOMException && err.name === "AbortError")
+          ) {
+            return;
+          }
+          stopDispatching = true;
+          reportError("Could not reach the server. Please try again.");
+        }
+      }
     }
+
+    await Promise.all([worker(), worker(), worker()]);
 
     abortRef.current = null;
     setGenerating(false);
+
+    // Bulk runs: summarise the per-question failure reasons in the banner.
+    if (!itemId && !bannerShown && failedReasons.length > 0) {
+      const unique = [...new Set(failedReasons)];
+      setError(
+        `${failedReasons.length} question${failedReasons.length === 1 ? "" : "s"} failed. ${unique
+          .slice(0, 2)
+          .join(" ")}${unique.length > 2 ? " ..." : ""}`
+      );
+    }
     await loadAll();
   }
 
@@ -493,7 +558,7 @@ export default function QuestionnaireDetailPage() {
 
   async function handleApprove(q: Question) {
     // Only drafted answers (AI-drafted or written manually with Edit)
-    // can be approved â€” never Not found / Failed / Pending.
+    // can be approved — never Not found / Failed / Pending.
     if (q.status !== "drafted" || !q.answer_text) return;
     clearBanners();
     setItemError(null);
@@ -546,7 +611,7 @@ export default function QuestionnaireDetailPage() {
   );
 
   async function handleApproveAll() {
-    // Only Drafted items â€” recomputed here so a stale list can never
+    // Only Drafted items — recomputed here so a stale list can never
     // approve a Not found / Failed / Pending question.
     const ids = questions
       .filter((q) => q.status === "drafted" && q.answer_text)
@@ -676,6 +741,7 @@ export default function QuestionnaireDetailPage() {
   }
 
   const failedCount = questions.filter((q) => q.status === "failed").length;
+  const pendingCount = questions.filter((q) => q.status === "pending").length;
   const approvedCount = questions.filter((q) => q.status === "approved").length;
   const filtered =
     filter === "all"
@@ -789,7 +855,7 @@ export default function QuestionnaireDetailPage() {
         {error && <ErrorCard className="mt-3">{error}</ErrorCard>}
       </div>
 
-      {/* Step A â€” column picker */}
+      {/* Step A — column picker */}
       {questionnaire.status === "uploaded" && (
         <div className="mt-6 app-card sm:p-6">
           <h2 className="text-lg font-semibold text-navy">
@@ -853,7 +919,7 @@ export default function QuestionnaireDetailPage() {
                     {(preview.preview_rows[0] ?? []).map((header, i) => (
                       <option key={i} value={i}>
                         Column {i + 1}
-                        {header ? ` â€” ${header.slice(0, 30)}` : ""}
+                        {header ? ` — ${header.slice(0, 30)}` : ""}
                       </option>
                     ))}
                   </select>
@@ -957,7 +1023,7 @@ export default function QuestionnaireDetailPage() {
         </div>
       )}
 
-      {/* Step B â€” answers and review */}
+      {/* Step B — answers and review */}
       {["parsed", "answering", "ready"].includes(questionnaire.status) && (
         <div className="mt-6">
           {hasReadyDocs === false ? (
@@ -1017,6 +1083,7 @@ export default function QuestionnaireDetailPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <button
                     onClick={handleGenerateAnswers}
+                    disabled={pendingCount === 0}
                     className={btnPrimary}
                   >
                     Generate answers
@@ -1030,8 +1097,7 @@ export default function QuestionnaireDetailPage() {
                     </button>
                   )}
                   <p className="text-xs text-muted-foreground sm:ml-auto">
-                    {questions.filter((q) => q.status === "pending").length}{" "}
-                    of {questions.length} still pending
+                    {pendingCount} of {questions.length} still pending
                   </p>
                 </div>
               )}
@@ -1167,7 +1233,7 @@ export default function QuestionnaireDetailPage() {
                     </div>
                   ) : q.status === "pending" ? (
                     <p className="mt-3 text-sm italic text-muted-foreground">
-                      No answer yet â€” generate answers to draft one.
+                      No answer yet — generate answers to draft one.
                     </p>
                   ) : null}
 
@@ -1178,9 +1244,13 @@ export default function QuestionnaireDetailPage() {
                     </p>
                   )}
 
-                  {/* Error for this item only â€” never a global banner. */}
-                  {itemError?.id === q.id && (
-                    <ErrorCard className="mt-3">{itemError.message}</ErrorCard>
+                  {/* Error for this item only — never a global banner. */}
+                  {(itemError?.id === q.id || questionErrors[q.id]) && (
+                    <ErrorCard className="mt-3">
+                      {itemError?.id === q.id
+                        ? itemError.message
+                        : questionErrors[q.id]}
+                    </ErrorCard>
                   )}
 
                   {/* Sources expander, directly under the answer */}
@@ -1270,7 +1340,7 @@ export default function QuestionnaireDetailPage() {
                       >
                         {q.answer_text ? "Edit" : "Write answer"}
                       </button>
-                      {/* Approve only for Drafted answers â€” AI drafts or
+                      {/* Approve only for Drafted answers — AI drafts or
                           manual edits. Not found / Failed / Pending have
                           no approve action at all. */}
                       {q.status === "drafted" && q.answer_text && (
