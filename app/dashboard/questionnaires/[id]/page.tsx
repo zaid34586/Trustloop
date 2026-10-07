@@ -363,15 +363,27 @@ export default function QuestionnaireDetailPage() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    let done = 0;
-    let next = 0;
-    let stopDispatching = false;
+    // Run-wide state shared by every pass.
+    const succeeded = new Set<string>();
+    const attempted = new Set<string>();
     const failedReasons: string[] = [];
+    // 429 (user limit or every provider on cooldown) and the
+    // fail-closed 503 stop EVERY pass: the rest stays pending and the
+    // server's message (e.g. "AI limit reached...") is shown.
+    let stopForLimit = false;
+    // Real outage/network failure: stop too, so one outage cannot
+    // burn the whole questionnaire.
+    let stopForOutage = false;
 
     const advance = (result: AnswerResult) => {
       applyResults([result]);
-      done += 1;
-      setProgress({ done, total: ids.length });
+      if (!attempted.has(result.id)) {
+        attempted.add(result.id);
+        setProgress({ done: attempted.size, total: ids.length });
+      }
+      if (result.status === "drafted" || result.status === "not_found") {
+        succeeded.add(result.id);
+      }
       if (result.status === "failed") {
         const reason = result.error ?? "Answer generation failed.";
         setQuestionErrors((prev) => ({ ...prev, [result.id]: reason }));
@@ -379,68 +391,115 @@ export default function QuestionnaireDetailPage() {
       }
     };
 
-    // Up to 3 questions generate concurrently; progress updates after
-    // EACH question instead of after a whole batch of three.
-    async function worker() {
-      while (!stopRef.current && !stopDispatching) {
-        const i = next++;
-        if (i >= ids.length) return;
-        const id = ids[i];
-        try {
-          const response = await fetch("/api/questions/answer", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question_ids: [id] }),
-            signal: controller.signal,
-          });
-          const data = await response.json().catch(() => null);
-          const results: AnswerResult[] = Array.isArray(data?.results)
-            ? data.results
-            : [];
-          results.forEach(advance);
+    // One pass: batches of up to 5 questions per request, at most 2
+    // requests in flight.
+    async function runPass(passIds: string[]) {
+      const batches: string[][] = [];
+      for (let i = 0; i < passIds.length; i += 5) {
+        batches.push(passIds.slice(i, i + 5));
+      }
 
-          if (!response.ok) {
-            const message: string =
-              data?.error ??
-              data?.message ??
-              "Answer generation failed. Please try again.";
-            // 429 means the question was never attempted - it stays
-            // pending. 503 with `unavailable` (rate-limit bookkeeping
-            // failed, fail-closed) is treated the same way. Any other
-            // error stops the run so one outage cannot burn the whole
-            // questionnaire; questions not attempted stay pending.
+      let next = 0;
+      let stopDispatching = false;
+
+      async function worker() {
+        while (
+          !stopRef.current &&
+          !stopDispatching &&
+          !stopForLimit &&
+          !stopForOutage
+        ) {
+          const i = next++;
+          if (i >= batches.length) return;
+          const batch = batches[i];
+          try {
+            const response = await fetch("/api/questions/answer", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ question_ids: batch }),
+              signal: controller.signal,
+            });
+            const data = await response.json().catch(() => null);
+            const results: AnswerResult[] = Array.isArray(data?.results)
+              ? data.results
+              : [];
+            results.forEach(advance);
+
+            if (!response.ok) {
+              const message: string =
+                data?.error ??
+                data?.message ??
+                "Answer generation failed. Please try again.";
+              // 429 = rate limit / provider cooldown: never attempted
+              // items stay pending. 503 + `unavailable` = usage
+              // bookkeeping failed (fail-closed): also pending.
+              if (response.status === 429) {
+                stopForLimit = true;
+              } else if (
+                response.status >= 500 &&
+                data?.unavailable === true
+              ) {
+                stopForLimit = true;
+              } else if (
+                results.length === 0 &&
+                response.status >= 500
+              ) {
+                // Nothing was answered and the server failed: mark
+                // this batch failed and stop the run.
+                batch.forEach((id) => {
+                  if (attempted.has(id)) return;
+                  advance({
+                    id,
+                    status: "failed",
+                    answer_text: null,
+                    confidence: null,
+                    sources: [],
+                    error: message,
+                  });
+                });
+                stopForOutage = true;
+              } else {
+                // Partial success with an error: keep the results and
+                // stop so the remaining batches are retried later.
+                stopForOutage = true;
+              }
+              stopDispatching = true;
+              reportError(message);
+            }
+          } catch (err) {
+            // Stopped by the user - not an error.
             if (
-              results.length === 0 &&
-              response.status >= 500 &&
-              data?.unavailable !== true
+              stopRef.current ||
+              (err instanceof DOMException && err.name === "AbortError")
             ) {
-              advance({
-                id,
-                status: "failed",
-                answer_text: null,
-                confidence: null,
-                sources: [],
-                error: message,
-              });
+              return;
             }
             stopDispatching = true;
-            reportError(message);
+            stopForOutage = true;
+            reportError("Could not reach the server. Please try again.");
           }
-        } catch (err) {
-          // Stopped by the user - not an error.
-          if (
-            stopRef.current ||
-            (err instanceof DOMException && err.name === "AbortError")
-          ) {
-            return;
-          }
-          stopDispatching = true;
-          reportError("Could not reach the server. Please try again.");
         }
       }
+
+      await Promise.all([worker(), worker()]);
     }
 
-    await Promise.all([worker(), worker(), worker()]);
+    // Main pass, then up to 2 automatic final passes for anything
+    // still Failed or Pending (with backoff). Never auto-starts on
+    // page load; the existing Generate button continues the run.
+    await runPass(ids);
+
+    if (!itemId && !stopForLimit && !stopForOutage && !bannerShown) {
+      const backoffMs = [1500, 3000];
+      for (let extra = 0; extra < backoffMs.length; extra++) {
+        const remaining = ids.filter((id) => !succeeded.has(id));
+        if (remaining.length === 0) break;
+        await new Promise((resolve) => setTimeout(resolve, backoffMs[extra]));
+        if (stopRef.current || stopForLimit || stopForOutage) break;
+        await runPass(remaining);
+        if (bannerShown) break;
+      }
+    }
 
     abortRef.current = null;
     setGenerating(false);
